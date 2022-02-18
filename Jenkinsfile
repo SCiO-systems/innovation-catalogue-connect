@@ -23,10 +23,9 @@ pipeline {
         stage('Building & pushing docker images to DockerHub') {
             steps {
                 echo 'Building project'
-                echo ${WORKSPACE}
 
                 script {
-                    sh "cp /envs/laravel/${project_name}/${stage_tag}.env .env"
+                    sh "cp /envs/laravel/${project_name}/${stage_tag}.env src/.env"
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
                         docker.build("sciohub/${project_name}:nginx-${stage_tag}", '-f nginx.dockerfile .').push()
