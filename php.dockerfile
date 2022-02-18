@@ -5,6 +5,7 @@ RUN mkdir -p /var/www/html
 WORKDIR /var/www/html
 
 COPY ./src .
+COPY ./src/.env .
 
 RUN sed -i "s/user = www-data/user = root/g" /usr/local/etc/php-fpm.d/www.conf
 RUN sed -i "s/group = www-data/group = root/g" /usr/local/etc/php-fpm.d/www.conf
