@@ -1,4 +1,4 @@
-FROM php:8-fpm-alpine
+FROM php:8-fpm
 
 RUN mkdir -p /var/www/html
 
@@ -18,5 +18,6 @@ RUN mkdir -p /usr/src/php/ext/redis \
     && docker-php-ext-install redis
 
 RUN pecl install mongodb
+RUN extension="mongodb.so"
 
 CMD ["php-fpm", "-y", "/usr/local/etc/php-fpm.conf", "-R"]
