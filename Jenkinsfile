@@ -25,26 +25,23 @@ pipeline {
                 echo 'Building project'
 
                 script {
-                    sshagent(credentials: ['jenkins-ssh-key']) {
-                        sh "cp /envs/laravel/${project_name}/${stage_tag}.env ."
-                    }
-                    
+                    sh "cp /envs/laravel/${project_name}/${stage_tag}.env ."
+
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
-                        docker.build("sciohub/${project_name}:nginx-${stage_tag}", "-f nginx.dockerfile .").push()
+                        docker.build("sciohub/${project_name}:nginx-${stage_tag}", '-f nginx.dockerfile .').push()
                     }
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
-                        docker.build("sciohub/${project_name}:php-${stage_tag}", "-f php.dockerfile .").push()
+                        docker.build("sciohub/${project_name}:php-${stage_tag}", '-f php.dockerfile .').push()
                     }
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
-                        docker.build("sciohub/${project_name}:composer-${stage_tag}", "-f composer.dockerfile .").push()
+                        docker.build("sciohub/${project_name}:composer-${stage_tag}", '-f composer.dockerfile .').push()
                     }
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
-                        docker.build("sciohub/${project_name}:artisan-${stage_tag}", "-f php.dockerfile .").push()
+                        docker.build("sciohub/${project_name}:artisan-${stage_tag}", '-f php.dockerfile .').push()
                     }
-
                 }
             }
         }
@@ -67,8 +64,7 @@ pipeline {
                         sh "scp -P 1412 -o StrictHostKeyChecking=no docker-compose.${stage_tag}.yml scio@${deployment_instance}:/var/lib/${project_name}-${stage_tag}"
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml up -d"
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml run --rm -u root composer update"
-                        // sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml run --rm -u root artisan migrate --seed"
-                        
+                    // sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml run --rm -u root artisan migrate --seed"
                     }
                 }
             }
