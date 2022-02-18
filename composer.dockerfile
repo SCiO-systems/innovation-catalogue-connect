@@ -7,5 +7,3 @@ ENV UID=${UID}
 ENV GID=${GID}
 
 WORKDIR /var/www/html
-
-RUN composer require jenssegers/mongodb
