@@ -18,6 +18,7 @@ RUN mkdir -p /usr/src/php/ext/redis \
     && docker-php-ext-install redis
 
 RUN pecl install mongodb
-RUN echo "extension=mongodb.so" >> /usr/local/etc/php/php-development.ini
+RUN echo "extension=mongodb.so" >> /usr/local/etc/php/php.ini-development
+RUN echo "extension=mongodb.so" >> /usr/local/etc/php/php.ini-production
 
 CMD ["php-fpm", "-y", "/usr/local/etc/php-fpm.conf", "-R"]
