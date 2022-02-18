@@ -4,7 +4,7 @@ RUN mkdir -p /var/www/html
 
 WORKDIR /var/www/html
 
-COPY ./src /var/www/html
+COPY ./src .
 
 RUN sed -i "s/user = www-data/user = root/g" /usr/local/etc/php-fpm.d/www.conf
 RUN sed -i "s/group = www-data/group = root/g" /usr/local/etc/php-fpm.d/www.conf
@@ -12,8 +12,8 @@ RUN echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf
 
 RUN docker-php-ext-install pdo pdo_mysql
 
-RUN pecl install mongodb \
-    && echo "extension=mongodb.so" >> /usr/local/etc/php/conf.d/mongodb.ini
+# RUN pecl install mongodb \
+#     && echo "extension=mongodb.so" >> /usr/local/etc/php/conf.d/mongodb.ini
 
 RUN mkdir -p /usr/src/php/ext/redis \
     && curl -L https://github.com/phpredis/phpredis/archive/5.3.4.tar.gz | tar xvz -C /usr/src/php/ext/redis --strip 1 \
