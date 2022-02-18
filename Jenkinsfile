@@ -23,6 +23,7 @@ pipeline {
         stage('Building & pushing docker images to DockerHub') {
             steps {
                 echo 'Building project'
+                echo ${WORKSPACE}
 
                 script {
                     sh "cp /envs/laravel/${project_name}/${stage_tag}.env .env"
