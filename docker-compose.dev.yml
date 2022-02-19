@@ -1,62 +1,13 @@
 version: '3.8'
-
 services:
-  nginx:
-    # build:
-    #   context: ./nginx
-    #   dockerfile: nginx.dockerfile
-    image: sciohub/innovation-catalogue-connect:nginx-dev
-    container_name: nginx
-    ports:
-      - 50100:80
-    volumes:
-      #- ./src:/var/www/html:delegated
-      - innovation-catalogue-connect-data:/var/www/html:delegated
-    depends_on:
-      - php
-    networks:
-      - laravel
+    webserver:
+        image: sciohub/laravel-nginx
+        container_name: nginx-laravel
+        restart: unless-stopped
+        ports:
+            - 50100:80
 
-  php:
-    # build:
-    #   context: ./php
-    #   dockerfile: php.dockerfile
-    image: sciohub/innovation-catalogue-connect:php-dev
-    container_name: php
-    volumes:
-      - innovation-catalogue-connect-data:/var/www/html:delegated
-    networks:
-      - laravel
-
-  composer:
-    image: composer:2
-    container_name: composer
-    volumes:
-      # - ./src:/var/www/html
-      - innovation-catalogue-connect-data:/var/www/html:delegated
-    working_dir: /var/www/html
-    depends_on:
-      - php
-    user: root
-    entrypoint: ['composer', '--ignore-platform-reqs']
-    networks:
-      - laravel
-
-  artisan:
-    # build:
-    #   context: ./php
-    #   dockerfile: php.dockerfile
-    image: sciohub/innovation-catalogue-connect:php-dev
-    container_name: artisan
-    volumes:
-      # - ./src:/var/www/html:delegated
-      - innovation-catalogue-connect-data:/var/www/html:delegated
-    working_dir: /var/www/html
-    entrypoint: ['php', '/var/www/html/artisan']
-    networks:
-      - laravel
-
-networks:
-  laravel:
-volumes:
-  innovation-catalogue-connect-data:
+    php:
+        image: sciohub/innovation-catalogue-connect:php-dev
+        container_name: laravel-app
+        restart: unless-stopped
