@@ -52,6 +52,8 @@ pipeline {
                         sh "scp -P 1412 -o StrictHostKeyChecking=no docker-compose.${stage_tag}.yml scio@${deployment_instance}:/var/lib/${project_name}-${stage_tag}"
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker rm -f laravel-app nginx-laravel"
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml up -d"
+                        sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker exec -it laravel-app chown -R www-data:www-data ."
+                        
                         // sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml run --rm -u root composer update"
                     // sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml run --rm -u root artisan migrate --seed"
                     }
