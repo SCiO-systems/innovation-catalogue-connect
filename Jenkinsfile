@@ -28,7 +28,11 @@ pipeline {
                     sh "cp /envs/laravel/${project_name}/${stage_tag}.env .env"
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
-                        docker.build("sciohub/${project_name}:php-${stage_tag}", ".").push()
+                        docker.build("sciohub/${project_name}:php-${stage_tag}", '.').push()
+                    }
+
+                    docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
+                        docker.build("sciohub/${project_name}:nginx", '-f Dockerfile.nginx .').push()
                     }
                 }
             }
@@ -54,8 +58,8 @@ pipeline {
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker rm -f laravel-app nginx-laravel"
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml up -d"
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker exec laravel-app chown -R www-data:www-data ."
-                        
-                        // sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml run --rm -u root composer update"
+
+                    // sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml run --rm -u root composer update"
                     // sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker-compose -f /var/lib/${project_name}-${stage_tag}/docker-compose.${stage_tag}.yml run --rm -u root artisan migrate --seed"
                     }
                 }
