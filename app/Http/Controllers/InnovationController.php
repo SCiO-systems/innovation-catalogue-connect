@@ -13,9 +13,9 @@ use Illuminate\Validation\Rule;
 class InnovationController extends Controller
 {
     /*
-    //GET
+    ////GET
     */
-    //Get all innovations from the collection    {admin}
+    //Get all innovations from the collection        {admin}
     public function  getAllInnovations($userId)
     {
         //Validating the input
@@ -43,7 +43,7 @@ class InnovationController extends Controller
         return response()->json(["result" => "ok", "innovations" => $innovations], 201);
     }
 
-    //Get all user innovations(latest version) from the collection {user}
+    //Get all user innovations(latest version) from the collection     {user}
     public function  getAllUserInnovations($userId)
     {
         //TODO:Latest version only
@@ -52,8 +52,10 @@ class InnovationController extends Controller
         return response()->json(["result" => "ok", "innovations" => $innovations], 201);
     }
 
+
+
     /*
-    //POST
+    ////POST
     */
 
     //Add a new innovation to the collection, given the userIds,status and formData    {user}
@@ -66,7 +68,6 @@ class InnovationController extends Controller
                 'required', Rule::in(['DRAFT','READY']),
             ],
         );
-
 
         //Validation and safety catches
         //for later(maybe)
@@ -102,34 +103,87 @@ class InnovationController extends Controller
     }
 
     /*
-    //PUT || PATCH
+    ////PUT || PATCH
     */
 
-    //Edit an existing innovation, change on formData or status                        {user}
+    //Edit an existing innovation, change on formData or status       {user}
     public function editInnovation(Request $request)
     {
-        $requestrules = array();
+        //Request vallidation
+        $requestRules = array(
+            'innov_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|string|numeric',
+            'status' => [
+                'required', Rule::in(['DRAFT','READY']),
+            ],
+        );
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Fetch the innovation from the database
+        //TODO:latest version
+        $innovation = Innovation::where('innovId', $request->innov_id)
+            ->where('deleted', false)
+            ->where(function ($query) {
+                $query->where('status', "DRAFT")->
+                orWhere('status', "READY");
+            })
+            ->first();
+
+        //Check if null was returned from the database
+        if($innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innov_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        //Check if user is an author
+        if(in_array($request->user_id, $innovation->userIds))
+        {
+            Log::info('User has author privileges',[$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have required privileges', [$request->user_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have required privileges'], 202);
+        }
+
+        //Patch the innovation data
+        $innovation->formData = $request->form_data;
+        $innovation->status = $request->status;
+
+        //Save, log and response
+        $innovation->save();
+        Log::info('Updating innovation', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
     }
 
+
+
+
+
     /*
-    //DELETE
+    ////DELETE
     */
 
-    public function deleteInnovation(Request $request, $innovId)
+    //Delete an innovation with status DRAFT || READY                 {user, admin}
+    public function deleteInnovation(Request $request, $innov_id)
     {
         //TODO: check its the latest version
         //Validation
-        $validator = Validator::make(["innovId" => $innovId], [
+        $validator = Validator::make(["innov_id" => $innov_id], [
             'innovId' => 'required|exists:App\Models\Innovation,innovId|string',
         ]);
         if ($validator->fails()) {
-            Log::error('Resource Validation Failed: ', [$validator->errors(), $innovId]);
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $innov_id]);
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
 
 
-        $innovation = Innovation::where('innovId', $innovId)
+        $innovation = Innovation::where('innovId', $innov_id)
                                 ->where('deleted', false)
                                 ->where(function ($query) {
                                     $query->where('status', "DRAFT")->
@@ -140,7 +194,7 @@ class InnovationController extends Controller
         //Check if null was returned from the database
         if($innovation == null)
         {
-            Log::warning('Requested innovation not found', [$innovId]);
+            Log::warning('Requested innovation not found', [$innov_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
