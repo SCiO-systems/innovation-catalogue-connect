@@ -1,8 +1,8 @@
 version: '3.8'
 services:
-    webserver:
+    nginx:
         build:
-          dockerfile: ./nginx/
+          dockerfile: ./nginx/Dockerfile
           context: ./
         image: sciohub/innovation-catalogue-connect:nginx
         container_name: laravel-nginx
