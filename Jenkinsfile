@@ -32,7 +32,7 @@ pipeline {
                     }
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
-                        docker.build("sciohub/${project_name}:nginx", '-f Dockerfile.nginx .').push()
+                        docker.build("sciohub/${project_name}:nginx", '-f nginx.dockerfile .').push()
                     }
                 }
             }
