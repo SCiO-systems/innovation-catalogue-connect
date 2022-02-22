@@ -5,9 +5,8 @@ services:
         container_name: laravel-nginx
         restart: unless-stopped
         volumes:
+          - /etc/letsencrypt/live/innovation.dev.api.scio.services/fullchain.pem:/etc/letsencrypt/live/innovation.dev.api.scio.services/fullchain.pem
           - /etc/letsencrypt/live/innovation.dev.api.scio.services/privkey.pem:/etc/letsencrypt/live/innovation.dev.api.scio.services/privkey.pem
-          - /etc/letsencrypt/live/innovation.dev.api.scio.services/cert.pem:/etc/letsencrypt/live/innovation.dev.api.scio.services/cert.pem
-          - /etc/letsencrypt/live/innovation.dev.api.scio.services/chain.pem:/etc/letsencrypt/live/innovation.dev.api.scio.services/chain.pem
         ports:
           - 50100:443
           - 50101:80
