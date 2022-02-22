@@ -28,7 +28,7 @@ pipeline {
                     sh "cp /envs/laravel/${project_name}/${stage_tag}.env .env"
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
-                        docker.build("sciohub/${project_name}:php-${stage_tag}", '.').push()
+                        docker.build("sciohub/${project_name}:${stage_tag}", '.').push()
                     }
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {

@@ -13,6 +13,6 @@ services:
           - 50101:80
 
     php:
-        image: sciohub/innovation-catalogue-connect:php-dev
+        image: sciohub/innovation-catalogue-connect:dev
         container_name: laravel-app
         restart: unless-stopped
