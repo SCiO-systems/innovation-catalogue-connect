@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Redis;
+
 
 
 class UserController extends Controller
@@ -49,10 +52,40 @@ class UserController extends Controller
     //Retrieve all the existing users
     public function getUsers()
     {
+        //TODO:check for admin priv maybe???
         $users =User::all();
         //$users = User::where('permissions', "admin")->where('role', "Evaluator")->get();
         Log::info('Retrieving all users ');
         return response()->json(["result" => "ok", "users" => $users], 201);
+    }
+
+    //Retrieve all the users with "reviewer" permission     {admin}
+    public function getAllReviewers($userId)
+    {
+        //Validating the input
+        $validator = Validator::make(["userId" => $userId], [
+            'userId' => 'required|exists:App\Models\User,userId|string|numeric',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $userId]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is admin
+        $adminUser = User::find($userId);
+        if(in_array("admin", $adminUser->permissions))
+        {
+            Log::info('Fetch all requested by admin: ', [$userId]);
+        }
+        else{
+            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+        }
+
+        $reviewers = User::where('permissions', "Reviewer")->get();
+        Log::info('Retrieving all reviewers ');
+        return response()->json(["result" => "ok", "users" => $reviewers], 201);
+
     }
 
 
@@ -92,7 +125,7 @@ class UserController extends Controller
     /*
     //PUT
     */
-    //Update user roles (every user can do this)
+    //Update user roles         {user}
     public function updateRoleUser(Request $request)
     {
         //TODO: MOOOOOOOAR VALIDATION MOAAAAAAAR (user check etc)
@@ -116,7 +149,7 @@ class UserController extends Controller
 
     }
 
-    //Update user permissions (only the admin can do this)
+    //Update user permissions      {admin}
     public function updatePermissionsUser(Request $request)
     {
         //Request validation
@@ -179,6 +212,15 @@ class UserController extends Controller
         Log::info('Updating user permissions with id: ', [$user->userId, $user->permissions]);
         return response()->json(["result" => "ok"], 201);
 
+    }
+
+    /*
+   //PLAYAROUND
+   */
+    public function playaround()
+    {
+        $result = Http::redisFetch();
+        return $result;
     }
 
 
