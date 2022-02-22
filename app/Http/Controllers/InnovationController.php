@@ -115,9 +115,10 @@ class InnovationController extends Controller
     //DELETE
     */
 
-    public function deleteInnovation($innovId)
+    public function deleteInnovation(Request $request, $innovId)
     {
-        //TODO: check the user has delete priviledges (owns the innovation || admin)
+        //TODO: check its the latest version
+        //Validation
         $validator = Validator::make(["innovId" => $innovId], [
             'innovId' => 'required|exists:App\Models\Innovation,innovId|string',
         ]);
@@ -125,6 +126,8 @@ class InnovationController extends Controller
             Log::error('Resource Validation Failed: ', [$validator->errors(), $innovId]);
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
+
+
 
         $innovation = Innovation::where('innovId', $innovId)
                                 ->where('deleted', false)
@@ -134,11 +137,35 @@ class InnovationController extends Controller
                                     })
                                 ->first();
 
-        $innovation->deleted = true;
+        //Check if null was returned from the database
+        if($innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$innovId]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        //Check if user has delete privileges (owns the innovation || admin)
+        $user = User::find($request->header('user_id'));
+        Log::info('Attempting to delete innovation', [$innovation]);
+        if(in_array($user->userId, $innovation->userIds))
+        {
+            Log::info('User has delete privileges',[$user->userId]);
+        }
+        else{
+            if(in_array("admin", $user->permissions))
+            {
+                Log::info('User has delete privileges',[$user->userId]);
+            }
+            else{
+                Log::warning('User does not have required privileges', [$user->userId]);
+                return response()->json(["result" => "failed","errorMessage" => 'User does not have required privileges'], 202);
+            }
+
+        }
 
         Log::info('Deleting innovation', [$innovation]);
+        $innovation->deleted = true;
         $innovation->save();
-
 
         return response()->json(["result" => "ok"], 201);
     }
