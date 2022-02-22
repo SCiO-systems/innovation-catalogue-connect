@@ -1,11 +1,16 @@
 version: '3.8'
 services:
     webserver:
-        image: sciohub/laravel-nginx
+        image: sciohub/innovation-catalogue-connect:nginx
         container_name: nginx-laravel
         restart: unless-stopped
+        volumes:
+          - /etc/letsencrypt/live/innovation.dev.api.scio.services/privkey.pem:/etc/letsencrypt/live/innovation.dev.api.scio.services/privkey.pem
+          - /etc/letsencrypt/live/innovation.dev.api.scio.services/cert.pem:/etc/letsencrypt/live/innovation.dev.api.scio.services/cert.pem
+          - /etc/letsencrypt/live/innovation.dev.api.scio.services/chain.pem:/etc/letsencrypt/live/innovation.dev.api.scio.services/chain.pem
         ports:
-            - 50100:80
+          - 50100:443
+          - 50101:80
 
     php:
         image: sciohub/innovation-catalogue-connect:php-dev
