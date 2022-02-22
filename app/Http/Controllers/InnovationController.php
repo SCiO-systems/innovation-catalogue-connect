@@ -38,14 +38,15 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
         }
 
-        $innovations = Innovation::all();
+        $innovations = Innovation::where('deleted', false)->get();
         Log::info('Retrieving all innovations ');
         return response()->json(["result" => "ok", "innovations" => $innovations], 201);
     }
 
-    //Get all user innovations from the collection {user}
+    //Get all user innovations(latest version) from the collection {user}
     public function  getAllUserInnovations($userId)
     {
+        //TODO:Latest version only
         $innovations = Innovation::where('userIds', $userId)->where('deleted', false)->get();
         Log::info('Retrieving all user innovations ', [$userId]);
         return response()->json(["result" => "ok", "innovations" => $innovations], 201);
@@ -98,6 +99,16 @@ class InnovationController extends Controller
 
         return response()->json(["result" => "ok"], 201);
 
+    }
+
+    /*
+    //PUT || PATCH
+    */
+
+    //Edit an existing innovation, change on formData or status                        {user}
+    public function editInnovation(Request $request)
+    {
+        $requestrules = array();
     }
 
     /*
