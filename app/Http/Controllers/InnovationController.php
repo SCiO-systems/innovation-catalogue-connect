@@ -174,7 +174,7 @@ class InnovationController extends Controller
         //TODO: check its the latest version
         //Validation
         $validator = Validator::make(["innov_id" => $innov_id], [
-            'innovId' => 'required|exists:App\Models\Innovation,innovId|string',
+            'innov_id' => 'required|exists:App\Models\Innovation,innovId|string',
         ]);
         if ($validator->fails()) {
             Log::error('Resource Validation Failed: ', [$validator->errors(), $innov_id]);
