@@ -1,6 +1,9 @@
 version: '3.8'
 services:
     webserver:
+        build:
+          dockerfile: ./nginx/
+          context: ./
         image: sciohub/innovation-catalogue-connect:nginx
         container_name: laravel-nginx
         restart: unless-stopped
