@@ -201,8 +201,6 @@ class UserController extends Controller
             }
         }
 
-
-
         //Updating the permissions of the targetId
         $user = User::find($request->targetId);
         $user->permissions = $newPermissions;
@@ -214,6 +212,7 @@ class UserController extends Controller
 
     }
 
+
     /*
    //PLAYAROUND
    */
@@ -221,6 +220,14 @@ class UserController extends Controller
     {
         $result = Http::redisFetch();
         return $result;
+    }
+
+    public function morningHead(Request $request)
+    {
+
+        $headId = $request->header('user_id');
+        $result = User::find($headId);
+        return response()->json(["result" => "ok", $result], 201);
     }
 
 
