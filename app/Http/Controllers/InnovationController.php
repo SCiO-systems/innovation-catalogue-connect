@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Innovation;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -44,12 +45,97 @@ class InnovationController extends Controller
     }
 
     //Get all user innovations(latest version) from the collection     {user}
-    public function  getAllUserInnovations($userId)
+    public function  getAllUserInnovations($user_id)
     {
-        //TODO:Latest version only
-        $innovations = Innovation::where('userIds', $userId)->where('deleted', false)->get();
-        Log::info('Retrieving all user innovations ', [$userId]);
+        //Find the distinct innovations of user_id
+        $innovationsDistinct = Innovation::where('userIds' , $user_id)
+            ->where('deleted', false)
+            ->distinct('innovId')
+            ->get();
+
+        $innovations = array();
+        //For every innovationId of the userId
+        foreach ($innovationsDistinct as $singleInnovation)
+        {
+            //Ready, latest version
+            $readyInnovations = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "READY")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if($readyInnovations != null)
+            {
+                $innovations[] = $readyInnovations;
+            }
+
+            //Draft, latest version
+            $draftInnovations = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "DRAFT")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if($draftInnovations != null)
+            {
+                $innovations[] = $draftInnovations;
+            }
+
+            //Accepted, latest version
+            $acceptedInnovations = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "ACCEPTED")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if($acceptedInnovations != null)
+            {
+                $innovations[] = $acceptedInnovations;
+            }
+
+            //Rejected, latest version
+            $rejectedInnovations = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "REJECTED")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if($rejectedInnovations != null)
+            {
+                $innovations[] = $rejectedInnovations;
+            }
+
+            //Submitted, latest version
+            $submittedInnovations = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "SUBMITTED")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if($submittedInnovations != null)
+            {
+                $innovations[] = $submittedInnovations;
+            }
+
+
+        }
+
+        Log::info('Retrieving all user innovations ', [$user_id]);
         return response()->json(["result" => "ok", "innovations" => $innovations], 201);
+    }
+
+    //testing function
+    public function  getInnovationsTest($user_id)
+    {
+        //Find the distinct innovations of user_id
+        $innovationsDistinct = Innovation::where('userIds' , $user_id)
+            ->where('deleted', false)
+            ->distinct('innovId')
+            ->get();
+
+
+        Log::info('Retrieving all user distinct innovations ', [$user_id]);
+        return response()->json(["result" => "ok", "innovations" => $innovationsDistinct], 201);
     }
 
 
