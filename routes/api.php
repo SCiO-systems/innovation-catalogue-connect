@@ -25,8 +25,10 @@ Route::get('/kalhmera', function () {
     //return view('welcome');
     return "az023...";
 });
-Route::get('playaround', [UserController::class, 'playaround']); //for trying things
 
+Route::get('morning/head', [UserController::class, 'morningHead']); //also for trying things
+Route::get('playaround', [UserController::class, 'playaround']); //for trying things
+Route::get('playaround/user/{userId}/getInnovations', [InnovationController::class, 'getInnovationsTest']);
 
 
 /*
@@ -53,5 +55,5 @@ Route::get('user/{userId}/getInnovations', [InnovationController::class, 'getAll
 Route::delete('innovation/{innovId}/delete', [InnovationController::class, 'deleteInnovation']);
 Route::patch('innovation/{innovId}/edit', [InnovationController::class, 'editInnovation']);
 
-//Admin calls and routes for user data
+//Admin calls and routes for innovation data
 Route::get('admin/{userId}/getInnovations', [InnovationController::class, 'getAllInnovations']);
