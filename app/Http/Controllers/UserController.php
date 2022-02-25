@@ -54,7 +54,7 @@ class UserController extends Controller
     {
         //TODO:check for admin priv maybe???
         $users =User::all();
-        //$users = User::where('permissions', "admin")->where('role', "Evaluator")->get();
+        //$users = User::where('permissions', "Administrator")->where('role', "Evaluator")->get();
         Log::info('Retrieving all users ');
         return response()->json(["result" => "ok", "users" => $users], 201);
     }
@@ -73,9 +73,9 @@ class UserController extends Controller
 
         //Check user is admin
         $adminUser = User::find($userId);
-        if(in_array("admin", $adminUser->permissions))
+        if(in_array("Administrator", $adminUser->permissions))
         {
-            Log::info('Fetch all requested by admin: ', [$userId]);
+            Log::info('Fetch all requested by administrator: ', [$userId]);
         }
         else{
             Log::warning('User does not have administrator rights: ', $adminUser->permissions);
@@ -106,7 +106,7 @@ class UserController extends Controller
 
         $user->userId = $request->userId;                   //Users ID
         $user->role = "";                                   //User role ("" default value)
-        $user->permissions = ["user"];                      //User permission ("user" default value)
+        $user->permissions = ["User"];                      //User permission ("user" default value)
 
         //Validation on the final user entities
         $validator = Validator::make($user->attributesToArray(),$rules);
@@ -137,7 +137,7 @@ class UserController extends Controller
         $validator = Validator::make($request->toArray(),$rules);
         if ($validator->fails()) {
             Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
-            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+            return response()->json(["result" => "failed", "errorMessage" => $validator->errors()], 400);
         }
 
         //Updating the role
@@ -166,9 +166,9 @@ class UserController extends Controller
 
         //Check if usedId has admin privileges
         $adminUser = User::find($request->userId);
-        if(in_array("admin", $adminUser->permissions))
+        if(in_array("Administrator", $adminUser->permissions))
         {
-            Log::info('Update requested by admin: ', [$request->userId]);
+            Log::info('Update requested by administrator: ', [$request->userId]);
         }
         else{
             Log::warning('User does not have administrator rights: ', $adminUser->permissions);
@@ -177,21 +177,21 @@ class UserController extends Controller
         $user = User::find($request->targetId);
         $newPermissions = $request->permissions;
         //Check if targetId has admin privileges and if they are included in the request
-        if(in_array("admin", $user->permissions))
+        if(in_array("Administrator", $user->permissions))
         {
-            if(in_array("admin", $request->permissions))
+            if(in_array("Administrator", $request->permissions))
             {
                 Log::info('Expected behaviour by update');
             }
             else{
                 Log::warning('Administrator rights not given, adding..... ', $request->permissions);
                 //add string to array
-                array_push($newPermissions, "admin");
+                array_push($newPermissions, "Administrator");
             }
         }
         else
         {
-            if(in_array("admin", $request->permissions))
+            if(in_array("Administrator", $request->permissions))
             {
                 Log::warning('Target user does not have administrator rights: ', $user->permissions);
                 return response()->json(["result" => "failed","errorMessage" => 'Target user does not have administrator rights: '], 202);
