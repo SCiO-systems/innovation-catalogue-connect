@@ -10,7 +10,4 @@ class Innovation extends Model
     protected $connection = 'mongodb';
     protected $collection = 'innovations';
 
-    //Primary Key properties
-    protected $primaryKey = 'innovId';
-    protected $keyType = 'string';
 }
