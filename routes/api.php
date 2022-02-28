@@ -35,26 +35,29 @@ Route::get('playaround/user/{userId}/getInnovations', [InnovationController::cla
 //User calls and routes
 */
 //Single user, CRUD
-Route::post('user/{userId}/new', [UserController::class, 'insertUser']);
-Route::get('user/{userId}/exists', [UserController::class, 'existsUser']);
-Route::get('user/{userId}/data', [UserController::class, 'getUser']);
-Route::patch('user/{userId}/update/role', [UserController::class, 'updateRoleUser']);
+Route::post('user/{user_id}/new', [UserController::class, 'insertUser']);
+Route::get('user/{user_id}/exists', [UserController::class, 'existsUser']);
+Route::get('user/{user_id}/data', [UserController::class, 'getUser']);
+Route::patch('user/{user_id}/update/role', [UserController::class, 'updateRoleUser']);
 
 //Multiple users
 Route::get('users/data', [UserController::class, 'getUsers']);
 
 //Admin calls and routes for user data
-Route::patch('admin/{userId}/update/permissions', [UserController::class, 'updatePermissionsUser']);
-Route::get('admin/{userId}/getReviewers', [UserController::class, 'getAllReviewers']);
+Route::patch('admin/{user_id}/update/permissions', [UserController::class, 'updatePermissionsUser']);
+Route::get('admin/{user_id}/getReviewers', [UserController::class, 'getAllReviewers']);
 
 /*
 //Innovation calls and routes
 */
 Route::post('innovation/insert', [InnovationController::class, 'insertInnovation']);
 Route::get('user/{userId}/getInnovations', [InnovationController::class, 'getAllUserInnovations']);
-Route::delete('innovation/{innovId}/delete', [InnovationController::class, 'deleteInnovation']);
 Route::patch('innovation/{innovId}/edit', [InnovationController::class, 'editInnovation']);
 Route::patch('innovation/{innovId}/submit', [InnovationController::class, 'submitInnovation']);
+Route::delete('innovation/{innovation_id}/delete/{user_id}', [InnovationController::class, 'deleteInnovation']);
 
 //Admin calls and routes for innovation data
-Route::get('admin/{userId}/getInnovations', [InnovationController::class, 'getAllInnovations']);
+Route::get('admin/{user_id}/getInnovations', [InnovationController::class, 'getAllInnovations']);
+
+//Reviewer calls and routes for innovation data
+Route::get('user/{user_id}/getAssignedReviews', [InnovationController::class, 'getAssignedReviews']);
