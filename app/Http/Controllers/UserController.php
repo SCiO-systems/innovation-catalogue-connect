@@ -216,11 +216,66 @@ class UserController extends Controller
     /*
    //PLAYAROUND
    */
+    //Play around on clarisa vocabularies
     public function playaround()
     {
         $result = Http::redisFetch();
-        return $result;
+        $usefulHeaders = array("clarisa_technical_field",
+            "clarisa_business_category",
+            "clarisa_beneficiaries",
+            "clarisa_users",
+            "clarisa_investment_type",
+            "clarisa_action_areas",
+            "clarisa_innovation_readiness_levels",
+            "clarisa_governance_type",
+            "clarisa_environmental_benefits",
+            "clarisa_administrative_scale",
+            "clarisa_innovation_type",
+            "clarisa_countries",
+            "clarisa_technology_development_stage"
+            );
+
+        //$extraArray = (array)$result->clarisa_technical_field;
+        //Log::info("HERES THE VOCAB", [$extraArray[0]]);
+
+        $vocabToArray = (array)$result;
+        $clarisa_vocabulary = array();
+        Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_innovation_type"]);
+        Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_business_category"]);
+        foreach ($usefulHeaders as $header)
+        {
+            //Log::info("HERE'S THE VOCAB", $vocabToArray[$header]);
+            $value = array();
+            foreach ($vocabToArray[$header] as $fields)
+            {
+                if(strcmp($header, "clarisa_administrative_scale") == 0 || strcmp($header, "clarisa_innovation_type") == 0)
+                {
+                    //Log::info("HERE'S THE HEADER", [$header]);
+                    $valueProperty = array("id" => $fields->code, "value" => $fields->name);
+                }
+                elseif (strcmp($header, "clarisa_countries") == 0)
+                {
+                    $valueProperty = array("id" => $fields->isoAlpha2, "value" => $fields->name);
+                }
+                elseif (strcmp($header, "clarisa_technology_development_stage") == 0)
+                {
+                    $valueProperty = array("id" => $fields->id, "value" => $fields->officialCode." ".$fields->name);
+                }
+                else{
+                    $valueProperty = array("id" => $fields->id, "value" => $fields->name);
+                }
+                array_push($value, $valueProperty);
+
+            }
+            $singleHeader = array("header" => $header, "value" => $value);
+            array_push($clarisa_vocabulary, $singleHeader);
+        }
+
+
+        return response()->json($clarisa_vocabulary, 201);
     }
+
+
 
     public function morningHead(Request $request)
     {
