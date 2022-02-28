@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Innovation;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+
 
 class InnovationController extends Controller
 {
@@ -122,6 +122,41 @@ class InnovationController extends Controller
 
         Log::info('Retrieving all user innovations ', [$user_id]);
         return response()->json(["result" => "ok", "innovations" => $innovations], 201);
+    }
+
+    //Get all the assigned for review innovations based on userId            {user, reviewer}
+    public function getAssignedReviews($user_id)
+    {
+        //Validating the input
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user has reviewer permissions
+        $reviewer = User::find($user_id);
+        if(in_array("Reviewer", $reviewer->permissions))
+        {
+            Log::info('Get assigned reviews requested by reviewer: ', [$user_id]);
+        }
+        else{
+            Log::warning('User is not a reviewer: ', $reviewer->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User is not a reviewer'], 202);
+        }
+
+        $assignedReviews = Innovation::where('reviewerIds', $user_id)
+                                    ->where('deleted', false)
+                                    ->where('status', "SUBMITTED")
+                                    ->orderBy('version', 'desc')
+                                    ->first();
+
+        Log::info('Retrieving all innovations assigned for review', [$user_id]);
+        return response()->json(["result" => "ok", "innovations" => $assignedReviews], 201);
+
+
     }
 
     //testing function
@@ -310,21 +345,21 @@ class InnovationController extends Controller
     */
 
     //Delete an innovation with status DRAFT || READY                 {user, admin}
-    public function deleteInnovation(Request $request, $innov_id)
+    public function deleteInnovation($innovation_id, $user_id)
     {
         //TODO: check its the latest version
         //Validation
-        $validator = Validator::make(["innov_id" => $innov_id], [
-            'innov_id' => 'required|exists:App\Models\Innovation,innovId|string',
+        $validator = Validator::make(["innovation_id" => $innovation_id], [
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
         ]);
         if ($validator->fails()) {
-            Log::error('Resource Validation Failed: ', [$validator->errors(), $innov_id]);
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
 
 
-        $innovation = Innovation::where('innovId', $innov_id)
+        $innovation = Innovation::where('innovId', $innovation_id)
                                 ->where('deleted', false)
                                 ->where(function ($query) {
                                     $query->where('status', "DRAFT")->
@@ -335,12 +370,12 @@ class InnovationController extends Controller
         //Check if null was returned from the database
         if($innovation == null)
         {
-            Log::warning('Requested innovation not found', [$innov_id]);
+            Log::warning('Requested innovation not found', [$innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
         //Check if user has delete privileges (owns the innovation || admin)
-        $user = User::find($request->header('user_id'));
+        $user = User::find($user_id);
         Log::info('Attempting to delete innovation', [$innovation]);
         if(in_array($user->userId, $innovation->userIds))
         {
