@@ -64,3 +64,4 @@ Route::patch('admin/{user_id}/assignReviewer', [InnovationController::class, 'as
 
 //Reviewer calls and routes for innovation data
 Route::get('user/{user_id}/getAssignedReviews', [InnovationController::class, 'getAssignedReviews']);
+Route::patch('innovation/{innovation_id}/reject', [InnovationController::class, 'rejectInnovation']);
