@@ -240,9 +240,9 @@ class UserController extends Controller
 
         $vocabToArray = (array)$result;
         $clarisa_vocabulary = array();
-        Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_innovation_type"]);
-        Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_business_category"]);
-        foreach ($usefulHeaders as $header)
+        //Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_innovation_type"]);
+        //Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_business_category"]);
+        /*foreach ($usefulHeaders as $header)
         {
             //Log::info("HERE'S THE VOCAB", $vocabToArray[$header]);
             $value = array();
@@ -269,8 +269,48 @@ class UserController extends Controller
             }
             $singleHeader = array("header" => $header, "value" => $value);
             array_push($clarisa_vocabulary, $singleHeader);
+        }*/
+
+        //Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_sdg_targets"]);
+        $sdgTargetPropertiesNames = array();
+        foreach ($vocabToArray["clarisa_sdg_targets"] as $sdgProperties) //sdgProperties is object
+        {
+            $sdgTargetPropertiesValues[$sdgProperties->sdg->usndCode][] = array("id" => $sdgProperties->id , "value" => $sdgProperties->sdgTargetCode." - ".$sdgProperties->sdgTarget);
+            if(!isset($sdgTargetPropertiesNames[$sdgProperties->sdg->usndCode]))
+            {
+                $sdgTargetPropertiesNames[$sdgProperties->sdg->usndCode][] = $sdgProperties->sdg->fullName;
+            }
         }
 
+        $sdgTargetValue = array();
+        foreach ($sdgTargetPropertiesValues as $targetId => $targets) //$targets is array of sdg_target objects
+        {
+            //Log::info("HERE'S THE VOCAB", ["id" => $targetId, "title" => $sdgTargetsNames[$targetId][0], "value" => $targets]);
+            $singleTarget = array("id" => $targetId, "title" => $sdgTargetPropertiesNames[$targetId][0], "value" => $targets);
+            array_push($sdgTargetValue, $singleTarget);
+        }
+        $singleHeader = array("header" => "clarisa_sdg_targets", "value" => $sdgTargetValue);
+        array_push($clarisa_vocabulary, $singleHeader);
+
+
+        $indicatorTitles = array();
+        foreach ($vocabToArray["clarisa_impact_areas_indicators"] as $indicatorProperties)
+        {
+            $singleIndicatorPropertiesValues[$indicatorProperties->impactAreaId][] = array("id" => $indicatorProperties->indicatorId, "value" => $indicatorProperties->indicatorStatement);
+            if(!isset($indicatorTitles[$indicatorProperties->impactAreaId]))
+            {
+                $indicatorTitles[$indicatorProperties->impactAreaId][] = $indicatorProperties->impactAreaName;
+            }
+        }
+
+        $impactAreaIndicatorValue = array();
+        foreach ($singleIndicatorPropertiesValues as $impactAreaId => $impactAreaIndicators)
+        {
+            $singleIndicator = array("id" => $impactAreaId, "title" => $indicatorTitles[$impactAreaId][0], "value" => $impactAreaIndicators);
+            array_push($impactAreaIndicatorValue, $singleIndicator);
+        }
+        $singleHeader = array("header" => "clarisa_impact_areas_indicators", "value" => $impactAreaIndicatorValue);
+        array_push($clarisa_vocabulary, $singleHeader);
 
         return response()->json($clarisa_vocabulary, 201);
     }
