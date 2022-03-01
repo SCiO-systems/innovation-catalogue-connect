@@ -384,7 +384,7 @@ class InnovationController extends Controller
         return response()->json(["result" => "ok"], 201);
     }
 
-
+    //Submit an innovation that has status READY
     public function submitInnovation(Request $request)
     {
         //Request vallidation
@@ -435,6 +435,73 @@ class InnovationController extends Controller
         Log::info('Submitting innovation', [$innovation]);
         return response()->json(["result" => "ok"], 201);
 
+    }
+
+
+    //Assign a reviewer to an innovation with status SUBMITTED based on reviewer_id given
+    public function assignReviewer(Request $request)
+    {
+        //Request vallidation
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'reviewer_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+
+        //Check user is admin
+        $adminUser = User::find($request->user_id);
+        if(in_array("Administrator", $adminUser->permissions))
+        {
+            Log::info('Assign reviewer requested by administrator: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+        }
+
+        //Check user is reviewer
+        $adminUser = User::find($request->reviewer_id);
+        if(in_array("Reviewer", $adminUser->permissions))
+        {
+            Log::info('Requested user has Reviewer permissions: ', [$request->reviewer_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+        }
+
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "SUBMITTED")
+            ->orderBy('version', 'desc')
+            ->first();
+
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innov_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        $tempReviewersArray = $innovation->reviewerIds;
+        if(in_array($request->reviewer_id, $tempReviewersArray))
+        {
+            Log::info('Requested reviewer has already been assigned this innovation: ', [$request->reviewer_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested reviewer has already been assigned this innovation: '], 202);
+        }
+
+        array_push($tempReviewersArray, $request->reviewer_id);
+        $innovation->reviewerIds = $tempReviewersArray;
+        $innovation->save();
+        Log::info('Assigning innovation to reviewer ', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
     }
 
 
