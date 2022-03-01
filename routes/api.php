@@ -30,6 +30,8 @@ Route::get('morning/head', [UserController::class, 'morningHead']); //also for t
 Route::get('playaround', [UserController::class, 'playaround']); //for trying things
 Route::get('playaround/user/{userId}/getInnovations', [InnovationController::class, 'getInnovationsTest']);
 
+Route::get('clarisaResults', [InnovationController::class, 'getClarisaResults']);
+
 
 /*
 //User calls and routes
