@@ -182,6 +182,8 @@ class InnovationController extends Controller
 
         $vocabToArray = (array)$result;
         $clarisa_vocabulary = array();
+
+        //Cases with { id , value}
         foreach ($usefulHeaders as $header)
         {
             //Log::info("HERE'S THE VOCAB", $vocabToArray[$header]);
@@ -209,6 +211,47 @@ class InnovationController extends Controller
             $singleHeader = array("header" => $header, "value" => $value);
             array_push($clarisa_vocabulary, $singleHeader);
         }
+
+        //Cases with objects in value
+        //TODO: titles could be done with less code (use the key as the value)
+        $sdgTargetPropertiesNames = array();
+        foreach ($vocabToArray["clarisa_sdg_targets"] as $sdgProperties) //sdgProperties is object
+        {
+            $sdgTargetPropertiesValues[$sdgProperties->sdg->usndCode][] = array("id" => $sdgProperties->id , "value" => $sdgProperties->sdgTargetCode." - ".$sdgProperties->sdgTarget);
+            if(!isset($sdgTargetPropertiesNames[$sdgProperties->sdg->usndCode]))
+            {
+                $sdgTargetPropertiesNames[$sdgProperties->sdg->usndCode][] = $sdgProperties->sdg->fullName;
+            }
+        }
+
+        $sdgTargetValue = array();
+        foreach ($sdgTargetPropertiesValues as $targetId => $targets) //$targets is array of sdg_target objects
+        {
+            $singleTarget = array("id" => $targetId, "title" => $sdgTargetPropertiesNames[$targetId][0], "value" => $targets);
+            array_push($sdgTargetValue, $singleTarget);
+        }
+        $singleHeader = array("header" => "clarisa_sdg_targets", "value" => $sdgTargetValue);
+        array_push($clarisa_vocabulary, $singleHeader);
+
+
+        $indicatorTitles = array();
+        foreach ($vocabToArray["clarisa_impact_areas_indicators"] as $indicatorProperties)
+        {
+            $singleIndicatorPropertiesValues[$indicatorProperties->impactAreaId][] = array("id" => $indicatorProperties->indicatorId, "value" => $indicatorProperties->indicatorStatement);
+            if(!isset($indicatorTitles[$indicatorProperties->impactAreaId]))
+            {
+                $indicatorTitles[$indicatorProperties->impactAreaId][] = $indicatorProperties->impactAreaName;
+            }
+        }
+
+        $impactAreaIndicatorValue = array();
+        foreach ($singleIndicatorPropertiesValues as $impactAreaId => $impactAreaIndicators)
+        {
+            $singleIndicator = array("id" => $impactAreaId, "title" => $indicatorTitles[$impactAreaId][0], "value" => $impactAreaIndicators);
+            array_push($impactAreaIndicatorValue, $singleIndicator);
+        }
+        $singleHeader = array("header" => "clarisa_impact_areas_indicators", "value" => $impactAreaIndicatorValue);
+        array_push($clarisa_vocabulary, $singleHeader);
 
 
         return response()->json($clarisa_vocabulary, 201);
