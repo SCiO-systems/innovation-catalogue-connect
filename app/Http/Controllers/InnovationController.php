@@ -563,6 +563,64 @@ class InnovationController extends Controller
         return response()->json(["result" => "ok"], 201);
     }
 
+    //Publish a submitted innovation                                {user, reviewer}
+    public function publishInnovation(Request $request)
+    {
+        //Request vallidation
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is reviewer
+        $reviewUser = User::find($request->user_id);
+        if(in_array("Reviewer", $reviewUser->permissions))
+        {
+            Log::info('Requested user has Reviewer permissions: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+        }
+
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "UNDER_REVIEW")
+            ->orderBy('version', 'desc')
+            ->first();
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innov_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        //Check innovation has been assigned to reviewer with user_id
+        if(in_array($request->user_id, $innovation->reviewerIds))
+        {
+            Log::info('Requested user has been assigned this innovation: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('Requested user has not been assigned this innovation: ', [$request->user_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested user has not been assigned this innovation'], 202);
+        }
+
+        //Update innovation, log and return response
+        $innovation->status = "ACCEPTED";
+        $innovation->save();
+        Log::info('Publishing innovation', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
+
+
+    }
+
 
 
 
