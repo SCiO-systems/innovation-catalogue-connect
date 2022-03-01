@@ -60,6 +60,7 @@ Route::delete('innovation/{innovation_id}/delete/{user_id}', [InnovationControll
 
 //Admin calls and routes for innovation data
 Route::get('admin/{user_id}/getInnovations', [InnovationController::class, 'getAllInnovations']);
+Route::patch('admin/{user_id}/assignReviewer', [InnovationController::class, 'assignReviewer']);
 
 //Reviewer calls and routes for innovation data
 Route::get('user/{user_id}/getAssignedReviews', [InnovationController::class, 'getAssignedReviews']);
