@@ -155,9 +155,13 @@ class InnovationController extends Controller
                                     ->first();
 
         Log::info('Retrieving all innovations assigned for review', [$user_id]);
-        return response()->json(["result" => "ok", "innovations" => $assignedReviews], 201);
-
-
+        if($assignedReviews == null)
+        {
+            return response()->json(["result" => "ok", "innovations" => []], 201);
+        }
+        else{
+            return response()->json(["result" => "ok", "innovations" => $assignedReviews], 201);
+        }
     }
 
     //Clarisa vocabulary results
