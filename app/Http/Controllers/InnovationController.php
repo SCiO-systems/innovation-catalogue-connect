@@ -21,7 +21,7 @@ class InnovationController extends Controller
     public function  getAllInnovations($user_id)
     {
         //Validating the input
-        $validator = Validator::make(["userId" => $user_id], [
+        $validator = Validator::make(["user_id" => $user_id], [
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         ]);
         if ($validator->fails()) {
@@ -312,6 +312,7 @@ class InnovationController extends Controller
         $innovation->deleted = false;                           //True for soft deleted innovations
         $innovation->reviewerIds = [];                          //Array of strings, empty on initialise
         $innovation->comments = " ";                            //Reviewer's comments, empty on initialise
+        $innovation->timestamp = time();                        //Timestamp for creation of the innovation
         $innovation->formData = $request->form_data;            //The actual innovation data
 
         //Validation on the final user entities
@@ -353,7 +354,7 @@ class InnovationController extends Controller
 
         if( $innovation == null)
         {
-            Log::warning('Requested innovation not found', [$request->innov_id]);
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
@@ -390,13 +391,14 @@ class InnovationController extends Controller
 
         $innovation = new Innovation;
         $innovation->innovId = $request->innovation_id;
-        $innovation->userIds = [$request->user_id];
+        $innovation->userIds = [$request->user_id];             //Array for migration and legacy reasons
         $innovation->status = $request->status;                 //DRAFT || READY
         $innovation->version = $newVersion;                     //Updating so $request->version + 1
         $innovation->persistId = [];                            //Later will add hdl, empty for now
         $innovation->deleted = false;                           //True for soft deleted innovations
         $innovation->reviewerIds = [];                          //Array of strings, empty on initialise
         $innovation->comments = " ";                            //Reviewer's comments, empty on initialise
+        $innovation->timestamp = time();                        //Timestamp for creation of the innovation
         $innovation->formData = $request->form_data;            //The actual innovation data
 
         //Save to database and log
@@ -565,7 +567,7 @@ class InnovationController extends Controller
 
         if( $innovation == null)
         {
-            Log::warning('Requested innovation not found', [$request->innov_id]);
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
@@ -620,7 +622,7 @@ class InnovationController extends Controller
 
         if( $innovation == null)
         {
-            Log::warning('Requested innovation not found', [$request->innov_id]);
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
@@ -677,7 +679,7 @@ class InnovationController extends Controller
 
         if( $innovation == null)
         {
-            Log::warning('Requested innovation not found', [$request->innov_id]);
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
@@ -765,9 +767,58 @@ class InnovationController extends Controller
         return response()->json(["result" => "ok"], 201);
     }
 
-    //Delete an innovation with status REJECTED based on created_at attribute      {user, admin}
-    public function deleteRejectedInnovation($innovation_id, $user_id, $created_at)
+    //Delete an innovation with status REJECTED based on timestamp attribute      {user, admin}
+    public function deleteRejectedInnovation($innovation_id, $user_id, $timestamp)
     {
+        //Validation on input parameters
+        //Validation on innovation_id
+        $validator = Validator::make(["innovation_id" => $innovation_id], [
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+        //Validation on user_id
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $innovation_id)
+            ->where('deleted', false)
+            ->where('status', "REJECTED")
+            ->where('timestamp', (int)$timestamp)
+            ->first();
+
+
+        //Check if user has delete privileges (owns the innovation || admin)
+        $user = User::find($user_id);
+        Log::info('Attempting to delete innovation', [$innovation]);
+        if(in_array($user->userId, $innovation->userIds))
+        {
+            Log::info('User has delete privileges',[$user->userId]);
+        }
+        else{
+            if(in_array("Administrator", $user->permissions))
+            {
+                Log::info('User has delete privileges',[$user->userId]);
+            }
+            else{
+                Log::warning('User does not have required privileges', [$user->userId]);
+                return response()->json(["result" => "failed","errorMessage" => 'User does not have required privileges'], 202);
+            }
+
+        }
+
+        Log::info('Deleting rejected innovation', [$innovation]);
+        $innovation->deleted = true;
+        $innovation->save();
+
         return response()->json(["result" => "ok"], 201);
     }
 
