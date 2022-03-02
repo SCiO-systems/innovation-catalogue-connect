@@ -378,14 +378,15 @@ class InnovationController extends Controller
                 $query->where('status', "DRAFT")->
                 orWhere('status', "READY");
             })
-            ->get();
+            ->first();
 
         //If new versions already exist then return fail
-        if($newVersionInnovations == null)
+        if($newVersionInnovations != null)
         {
             Log::warning('New version of innovation already existing in Draft or Ready status', [$newVersionInnovations]);
             return response()->json(["result" => "failed","errorMessage" => 'New version of innovation already existing in Draft or Ready status'], 202);
         }
+
 
         $innovation = new Innovation;
         $innovation->innovId = $request->innovation_id;
@@ -764,6 +765,10 @@ class InnovationController extends Controller
         return response()->json(["result" => "ok"], 201);
     }
 
-
+    //Delete an innovation with status REJECTED based on created_at attribute      {user, admin}
+    public function deleteRejectedInnovation($innovation_id, $user_id, $created_at)
+    {
+        return response()->json(["result" => "ok"], 201);
+    }
 
 }
