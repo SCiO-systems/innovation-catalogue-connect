@@ -35,7 +35,7 @@ class UserController extends Controller
     //Retrieve existing user
     public function getUser($user_id)
     {
-        $validator = Validator::make(["userId" => $user_id], [
+        $validator = Validator::make(["user_id" => $user_id], [
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         ]);
         if ($validator->fails()) {
@@ -50,9 +50,28 @@ class UserController extends Controller
     }
 
     //Retrieve all the existing users
-    public function getUsers()
+    public function getUsers($user_id)
     {
-        //TODO:check for admin priv maybe???
+        //Validating the input
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is admin
+        $adminUser = User::find($user_id);
+        if(in_array("Administrator", $adminUser->permissions))
+        {
+            Log::info('Fetch all requested by administrator: ', [$user_id]);
+        }
+        else{
+            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+        }
+
         $users =User::all();
         //$users = User::where('permissions', "Administrator")->where('role', "Evaluator")->get();
         Log::info('Retrieving all users ');
@@ -63,7 +82,7 @@ class UserController extends Controller
     public function getAllReviewers($user_id)
     {
         //Validating the input
-        $validator = Validator::make(["userId" => $user_id], [
+        $validator = Validator::make(["user_id" => $user_id], [
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         ]);
         if ($validator->fails()) {
