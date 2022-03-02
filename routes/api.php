@@ -43,7 +43,7 @@ Route::get('user/{user_id}/data', [UserController::class, 'getUser']);
 Route::patch('user/{user_id}/update/role', [UserController::class, 'updateRoleUser']);
 
 //Multiple users
-Route::get('users/data', [UserController::class, 'getUsers']);
+Route::get('admin/{user_id}/users/data', [UserController::class, 'getUsers']);
 
 //Admin calls and routes for user data
 Route::patch('admin/{user_id}/update/permissions', [UserController::class, 'updatePermissionsUser']);
@@ -53,6 +53,7 @@ Route::get('admin/{user_id}/getReviewers', [UserController::class, 'getAllReview
 //Innovation calls and routes
 */
 Route::post('innovation/insert', [InnovationController::class, 'insertInnovation']);
+Route::post('innovation/{innovation_id}/updateVersion', [InnovationController::class, 'updateVersionInnovation']);
 Route::get('user/{user_id}/getInnovations', [InnovationController::class, 'getAllUserInnovations']);
 Route::patch('innovation/{innovation_id}/edit', [InnovationController::class, 'editInnovation']);
 Route::patch('innovation/{innovation_id}/submit', [InnovationController::class, 'submitInnovation']);
