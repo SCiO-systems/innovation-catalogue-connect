@@ -26,7 +26,7 @@ Route::get('/kalhmera', function () {
     return "az023...";
 });
 
-Route::get('morning/head', [UserController::class, 'morningHead']); //also for trying things
+Route::get('morning/head/{timestamp}', [UserController::class, 'morningHead']); //also for trying things
 Route::get('playaround', [UserController::class, 'playaround']); //for trying things
 Route::get('playaround/user/{userId}/getInnovations', [InnovationController::class, 'getInnovationsTest']);
 

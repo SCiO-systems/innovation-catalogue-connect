@@ -335,12 +335,11 @@ class UserController extends Controller
 
 
 
-    public function morningHead(Request $request)
+    public function morningHead($timestamp)
     {
 
-        $headId = $request->header('user_id');
-        $result = User::find($headId);
-        return response()->json(["result" => "ok", $result], 201);
+        $date = date('Y-m-d H:i:s', (int)$timestamp);
+        return response()->json(["result" => "ok", "date" => $date], 201);
     }
 
 
