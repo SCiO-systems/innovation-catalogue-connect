@@ -58,6 +58,7 @@ Route::get('user/{user_id}/getInnovations', [InnovationController::class, 'getAl
 Route::patch('innovation/{innovation_id}/edit', [InnovationController::class, 'editInnovation']);
 Route::patch('innovation/{innovation_id}/submit', [InnovationController::class, 'submitInnovation']);
 Route::delete('innovation/{innovation_id}/delete/{user_id}', [InnovationController::class, 'deleteInnovation']);
+Route::delete('innovation/{innovation_id}/deleteRejected/user/{user_id}/createdAt/{timestamp}', [InnovationController::class, 'deleteRejectedInnovation']);
 
 //Admin calls and routes for innovation data
 Route::get('admin/{user_id}/getInnovations', [InnovationController::class, 'getAllInnovations']);
