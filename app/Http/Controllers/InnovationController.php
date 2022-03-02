@@ -42,7 +42,13 @@ class InnovationController extends Controller
 
         $innovations = Innovation::where('deleted', false)->get();
         Log::info('Retrieving all innovations ');
-        return response()->json(["result" => "ok", "innovations" => $innovations], 201);
+        if($innovations == null)
+        {
+            return response()->json(["result" => "ok", "innovations" => []], 201);
+        }
+        else{
+            return response()->json(["result" => "ok", "innovations" => $innovations], 201);
+        }
     }
 
     //Get all user innovations(latest version) from the collection     {user}
