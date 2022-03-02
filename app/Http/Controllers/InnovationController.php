@@ -18,22 +18,22 @@ class InnovationController extends Controller
     ////GET
     */
     //Get all innovations from the collection        {admin}
-    public function  getAllInnovations($userId)
+    public function  getAllInnovations($user_id)
     {
         //Validating the input
-        $validator = Validator::make(["userId" => $userId], [
-            'userId' => 'required|exists:App\Models\User,userId|string|numeric',
+        $validator = Validator::make(["userId" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         ]);
         if ($validator->fails()) {
-            Log::error('Resource Validation Failed: ', [$validator->errors(), $userId]);
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
         //Check user is admin
-        $adminUser = User::find($userId);
+        $adminUser = User::find($user_id);
         if(in_array("Administrator", $adminUser->permissions))
         {
-            Log::info('Fetch all requested by administrator: ', [$userId]);
+            Log::info('Fetch all requested by administrator: ', [$user_id]);
         }
         else{
             Log::warning('User does not have administrator rights: ', $adminUser->permissions);
@@ -334,7 +334,7 @@ class InnovationController extends Controller
     {
         //Request vallidation
         $requestRules = array(
-            'innov_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
             'status' => [
                 'required', Rule::in(['DRAFT','READY']),
@@ -347,7 +347,7 @@ class InnovationController extends Controller
         }
 
         //Fetch the innovation from the database (latest version for safety)
-        $innovation = Innovation::where('innovId', $request->innov_id)
+        $innovation = Innovation::where('innovId', $request->innovation_id)
             ->where('deleted', false)
             ->where(function ($query) {
                 $query->where('status', "DRAFT")->
@@ -356,11 +356,10 @@ class InnovationController extends Controller
             ->orderBy('version', 'desc')
             ->first();
 
-        //Log::info('EXTRA LOG', [$innovation]);
         //Check if null was returned from the database
         if($innovation == null)
         {
-            Log::warning('Requested innovation not found', [$request->innov_id]);
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
@@ -389,7 +388,7 @@ class InnovationController extends Controller
     {
         //Request vallidation
         $requestRules = array(
-            'innov_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         );
 
@@ -400,7 +399,7 @@ class InnovationController extends Controller
         }
 
         //Fetch the innovation from the database (latest version for safety)
-        $innovation = Innovation::where('innovId', $request->innov_id)
+        $innovation = Innovation::where('innovId', $request->innovation_id)
             ->where('deleted', false)
             ->where(function ($query) {
                 $query->where('status', "DRAFT")->
@@ -412,12 +411,12 @@ class InnovationController extends Controller
         //Check for null and innovation status
         if($innovation ==null)
         {
-            Log::warning('Requested innovation not found', [$request->innov_id]);
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
         if($innovation->status != "READY")
         {
-            Log::warning('Requested innovation can not be submitted', [$request->innov_id]);
+            Log::warning('Requested innovation can not be submitted', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation can not be submitted'], 202);
         }
         //Check if user is an author
@@ -512,7 +511,7 @@ class InnovationController extends Controller
         $requestRules = array(
             'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
-            'comments' => 'present|string',
+            'comments' => 'present|nullable|string',
         );
 
         $validator = Validator::make($request->toArray(),$requestRules);

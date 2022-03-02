@@ -53,9 +53,9 @@ Route::get('admin/{user_id}/getReviewers', [UserController::class, 'getAllReview
 //Innovation calls and routes
 */
 Route::post('innovation/insert', [InnovationController::class, 'insertInnovation']);
-Route::get('user/{userId}/getInnovations', [InnovationController::class, 'getAllUserInnovations']);
-Route::patch('innovation/{innovId}/edit', [InnovationController::class, 'editInnovation']);
-Route::patch('innovation/{innovId}/submit', [InnovationController::class, 'submitInnovation']);
+Route::get('user/{user_id}/getInnovations', [InnovationController::class, 'getAllUserInnovations']);
+Route::patch('innovation/{innovation_id}/edit', [InnovationController::class, 'editInnovation']);
+Route::patch('innovation/{innovation_id}/submit', [InnovationController::class, 'submitInnovation']);
 Route::delete('innovation/{innovation_id}/delete/{user_id}', [InnovationController::class, 'deleteInnovation']);
 
 //Admin calls and routes for innovation data
