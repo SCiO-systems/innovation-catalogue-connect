@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Redis;
 
 
 
@@ -35,6 +34,7 @@ class UserController extends Controller
     //Retrieve existing user
     public function getUser($user_id)
     {
+        //Validation on user_id
         $validator = Validator::make(["user_id" => $user_id], [
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         ]);
