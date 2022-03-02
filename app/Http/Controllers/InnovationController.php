@@ -325,6 +325,85 @@ class InnovationController extends Controller
 
     }
 
+    //Update an ACCEPTED innovation to a higher version             {user}
+    public function updateVersionInnovation(Request $request)
+    {
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'form_data' => 'required|array',
+            'version' => 'required|integer',
+            'status' => [
+                'required', Rule::in(['DRAFT','READY']),
+            ],
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "ACCEPTED")
+            ->where('version', $request->version)
+            ->first();
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innov_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+
+        //Check if user is an author
+        if(in_array($request->user_id, $innovation->userIds))
+        {
+            Log::info('User has author privileges',[$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have author privileges', [$request->user_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have author privileges'], 202);
+        }
+
+        $newVersion = $request->version +1;
+
+        //Fetch possible existing DRAFT || READY of new version innovation
+        $newVersionInnovations = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('version', $newVersion)
+            ->where(function ($query) {
+                $query->where('status', "DRAFT")->
+                orWhere('status', "READY");
+            })
+            ->get();
+
+        //If new versions already exist then return fail
+        if($newVersionInnovations == null)
+        {
+            Log::warning('New version of innovation already existing in Draft or Ready status', [$newVersionInnovations]);
+            return response()->json(["result" => "failed","errorMessage" => 'New version of innovation already existing in Draft or Ready status'], 202);
+        }
+
+        $innovation = new Innovation;
+        $innovation->innovId = $request->innovation_id;
+        $innovation->userIds = [$request->user_id];
+        $innovation->status = $request->status;                 //DRAFT || READY
+        $innovation->version = $newVersion;                     //Updating so $request->version + 1
+        $innovation->persistId = [];                            //Later will add hdl, empty for now
+        $innovation->deleted = false;                           //True for soft deleted innovations
+        $innovation->reviewerIds = [];                          //Array of strings, empty on initialise
+        $innovation->comments = " ";                            //Reviewer's comments, empty on initialise
+        $innovation->formData = $request->form_data;            //The actual innovation data
+
+        //Save to database and log
+        $innovation->save();
+        Log::info('Adding updated innovation with version: ', [$innovation->version, $request->toArray() ]);
+        return response()->json(["result" => "ok"], 201);
+    }
+
     /*
     ////PUT || PATCH
     */
