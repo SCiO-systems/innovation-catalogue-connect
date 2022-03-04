@@ -1,9 +1,11 @@
 <?php
 
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InnovationController;
+use App\Http\Controllers\RtbController;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,6 +67,20 @@ Route::get('admin/{user_id}/getInnovations', [InnovationController::class, 'getA
 Route::patch('admin/{user_id}/assignReviewer', [InnovationController::class, 'assignReviewer']);
 
 //Reviewer calls and routes for innovation data
-Route::get('user/{user_id}/getAssignedReviews', [InnovationController::class, 'getAssignedReviews']);
+Route::get('user/{user_id}/getAssignedInnovations', [InnovationController::class, 'getAssignedInnovations']);
+Route::patch('innovation/{user_id}/addComment', [InnovationController::class, 'addComment']);
 Route::patch('innovation/{innovation_id}/reject', [InnovationController::class, 'rejectInnovation']);
 Route::patch('innovation/{innovation_id}/publish', [InnovationController::class, 'publishInnovation']);
+
+/*
+//RTB Search routes and calls
+*/
+route::post('rtb-search', [RtbController::class, 'rtb_search']);
+route::post('rtb-retrieveByTitle', [RtbController::class, 'rtb_retrievedocument_by_title']);
+
+
+route::post('retrievedocument', [RtbController::class, 'rtb_retrieve_document']);
+/*Route::group(
+    ['middleware' => 'jwt'], function () {
+    route::post('retrievedocument', [RtbController::class, 'rtb_retrieve_document']);
+    });*/
