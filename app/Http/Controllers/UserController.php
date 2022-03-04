@@ -116,7 +116,7 @@ class UserController extends Controller
     {
         //TODO: MOOOOOOOAR VALIDATION MOAAAAAAAR (request check etc)
         $rules = array(
-            'user_id' => 'required|unique:App\Models\User,userId|string|numeric',
+            'userId' => 'required|unique:App\Models\User,userId|string|numeric',
             'role' => 'present|nullable|string',
             'permissions' => 'present|array'
         );
@@ -337,9 +337,9 @@ class UserController extends Controller
 
     public function morningHead($timestamp)
     {
-
+        $hardDate = date('Y-m-d H:i:s', time());
         $date = date('Y-m-d H:i:s', (int)$timestamp);
-        return response()->json(["result" => "ok", "date" => $date], 201);
+        return response()->json(["hardCodedDate" => $hardDate, "date" => $date], 201);
     }
 
 
