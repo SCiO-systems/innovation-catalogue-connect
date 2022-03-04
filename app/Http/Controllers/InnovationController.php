@@ -18,22 +18,22 @@ class InnovationController extends Controller
     ////GET
     */
     //Get all innovations from the collection        {admin}
-    public function  getAllInnovations($userId)
+    public function  getAllInnovations($user_id)
     {
         //Validating the input
-        $validator = Validator::make(["userId" => $userId], [
-            'userId' => 'required|exists:App\Models\User,userId|string|numeric',
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         ]);
         if ($validator->fails()) {
-            Log::error('Resource Validation Failed: ', [$validator->errors(), $userId]);
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
         //Check user is admin
-        $adminUser = User::find($userId);
+        $adminUser = User::find($user_id);
         if(in_array("Administrator", $adminUser->permissions))
         {
-            Log::info('Fetch all requested by administrator: ', [$userId]);
+            Log::info('Fetch all requested by administrator: ', [$user_id]);
         }
         else{
             Log::warning('User does not have administrator rights: ', $adminUser->permissions);
@@ -42,7 +42,13 @@ class InnovationController extends Controller
 
         $innovations = Innovation::where('deleted', false)->get();
         Log::info('Retrieving all innovations ');
-        return response()->json(["result" => "ok", "innovations" => $innovations], 201);
+        if($innovations == null)
+        {
+            return response()->json(["result" => "ok", "innovations" => []], 201);
+        }
+        else{
+            return response()->json(["result" => "ok", "innovations" => $innovations], 201);
+        }
     }
 
     //Get all user innovations(latest version) from the collection     {user}
@@ -118,6 +124,18 @@ class InnovationController extends Controller
                 $innovations[] = $submittedInnovations;
             }
 
+            //Under Review, latest version
+            $underReviewInnovations = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "UNDER_REVIEW")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if($underReviewInnovations != null)
+            {
+                $innovations[] = $underReviewInnovations;
+            }
+
 
         }
 
@@ -126,7 +144,7 @@ class InnovationController extends Controller
     }
 
     //Get all the assigned for review innovations based on userId            {user, reviewer}
-    public function getAssignedReviews($user_id)
+    public function getAssignedInnovations($user_id)
     {
         //Validating the input
         $validator = Validator::make(["user_id" => $user_id], [
@@ -150,14 +168,18 @@ class InnovationController extends Controller
 
         $assignedReviews = Innovation::where('reviewerIds', $user_id)
                                     ->where('deleted', false)
-                                    ->where('status', "SUBMITTED")
+                                    ->where('status', "UNDER_REVIEW")
                                     ->orderBy('version', 'desc')
-                                    ->first();
+                                    ->get();
 
         Log::info('Retrieving all innovations assigned for review', [$user_id]);
-        return response()->json(["result" => "ok", "innovations" => $assignedReviews], 201);
-
-
+        if($assignedReviews == null)
+        {
+            return response()->json(["result" => "ok", "innovations" => []], 201);
+        }
+        else{
+            return response()->json(["result" => "ok", "innovations" => $assignedReviews], 201);
+        }
     }
 
     //Clarisa vocabulary results
@@ -296,19 +318,24 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
+        $currentTime = round(microtime(true) * 1000);
+
         //generate uuid with INNOV- prefix included
         $uuid = Str::uuid()->toString();
         $innovation->innovId = 'INNOV-'.$uuid;
 
         //Data assignment from resource and local generation
         $innovation->userIds = [$request->user_id];
-        $innovation->status = $request->status;                 //DRAFT || READY TODO:(??ask nick??)
-        $innovation->version = 1;                               //First time creating so version 1
-        $innovation->persistId = [];                            //Later will add hdl, empty for now
-        $innovation->deleted = false;                           //True for soft deleted innovations
-        $innovation->reviewerIds = [];                          //Array of strings, empty on initialise
-        $innovation->comments = " ";                            //Reviewer's comments, empty on initialise
-        $innovation->formData = $request->form_data;            //The actual innovation data
+        $innovation->status = $request->status;                       //DRAFT || READY
+        $innovation->version = 1;                                     //First time creating so version 1
+        $innovation->persistId = [];                                  //Later will add hdl, empty for now
+        $innovation->deleted = false;                                 //True for soft deleted innovations
+        $innovation->reviewerIds = [];                                //Array of strings, empty on initialise
+        $innovation->comments = "";                                   //Reviewer's comments, empty on initialise
+        $innovation->createdAt = $currentTime;                        //Date of creation
+        $innovation->updatedAt = $currentTime;                        //Date of last update, same as creation at first
+        $innovation->assignedAt = "";                                 //Date of assignment to reviewer
+        $innovation->formData = $request->form_data;                  //The actual innovation data
 
         //Validation on the final user entities
         //for later
@@ -321,6 +348,90 @@ class InnovationController extends Controller
 
     }
 
+    //Update an ACCEPTED innovation to a higher version             {user}
+    public function updateVersionInnovation(Request $request)
+    {
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'form_data' => 'required|array',
+            'version' => 'required|integer',
+            'status' => [
+                'required', Rule::in(['DRAFT','READY']),
+            ],
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "ACCEPTED")
+            ->where('version', $request->version)
+            ->first();
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+
+        //Check if user is an author
+        if(in_array($request->user_id, $innovation->userIds))
+        {
+            Log::info('User has author privileges',[$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have author privileges', [$request->user_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have author privileges'], 202);
+        }
+
+        $newVersion = $request->version +1;
+
+        //Fetch possible existing DRAFT || READY of new version innovation
+        $newVersionInnovations = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('version', $newVersion)
+            ->where(function ($query) {
+                $query->where('status', "DRAFT")->
+                orWhere('status', "READY");
+            })
+            ->first();
+
+        //If new versions already exist then return fail
+        if($newVersionInnovations != null)
+        {
+            Log::warning('New version of innovation already existing in Draft or Ready status', [$newVersionInnovations]);
+            return response()->json(["result" => "failed","errorMessage" => 'New version of innovation already existing in Draft or Ready status'], 202);
+        }
+        $currentTime = round(microtime(true) * 1000);
+
+        //Data assignment from resource and local generation
+        $innovation = new Innovation;
+        $innovation->innovId = $request->innovation_id;
+        $innovation->userIds = [$request->user_id];            //Array for migration and legacy reasons
+        $innovation->status = $request->status;                //DRAFT || READY
+        $innovation->version = $newVersion;                    //Updating so $request->version + 1
+        $innovation->persistId = [];                           //Later will add hdl, empty for now
+        $innovation->deleted = false;                          //True for soft deleted innovations
+        $innovation->reviewerIds = [];                         //Array of strings, empty on initialise
+        $innovation->comments = " ";                           //Reviewer's comments, empty on initialise
+        $innovation->createdAt = $currentTime;                 //Date of creation
+        $innovation->updatedAt = $currentTime;                 //Date of last update, same as creation at first
+        $innovation->assignedAt = "";                          //Date of assignment to reviewer
+        $innovation->formData = $request->form_data;           //The actual innovation data
+
+        //Save to database and log
+        $innovation->save();
+        Log::info('Adding updated innovation with version: ', [$innovation->version, $request->toArray() ]);
+        return response()->json(["result" => "ok"], 201);
+    }
+
     /*
     ////PUT || PATCH
     */
@@ -330,7 +441,7 @@ class InnovationController extends Controller
     {
         //Request vallidation
         $requestRules = array(
-            'innov_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
             'status' => [
                 'required', Rule::in(['DRAFT','READY']),
@@ -343,7 +454,7 @@ class InnovationController extends Controller
         }
 
         //Fetch the innovation from the database (latest version for safety)
-        $innovation = Innovation::where('innovId', $request->innov_id)
+        $innovation = Innovation::where('innovId', $request->innovation_id)
             ->where('deleted', false)
             ->where(function ($query) {
                 $query->where('status', "DRAFT")->
@@ -352,11 +463,10 @@ class InnovationController extends Controller
             ->orderBy('version', 'desc')
             ->first();
 
-        //Log::info('EXTRA LOG', [$innovation]);
         //Check if null was returned from the database
         if($innovation == null)
         {
-            Log::warning('Requested innovation not found', [$request->innov_id]);
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
@@ -373,6 +483,7 @@ class InnovationController extends Controller
         //Patch the innovation data
         $innovation->formData = $request->form_data;
         $innovation->status = $request->status;
+        $innovation->updatedAt = round(microtime(true) * 1000);
 
         //Save, log and response
         $innovation->save();
@@ -380,12 +491,12 @@ class InnovationController extends Controller
         return response()->json(["result" => "ok"], 201);
     }
 
-
+    //Submit an innovation that has status READY                           {user}
     public function submitInnovation(Request $request)
     {
         //Request vallidation
         $requestRules = array(
-            'innov_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         );
 
@@ -396,7 +507,7 @@ class InnovationController extends Controller
         }
 
         //Fetch the innovation from the database (latest version for safety)
-        $innovation = Innovation::where('innovId', $request->innov_id)
+        $innovation = Innovation::where('innovId', $request->innovation_id)
             ->where('deleted', false)
             ->where(function ($query) {
                 $query->where('status', "DRAFT")->
@@ -408,12 +519,12 @@ class InnovationController extends Controller
         //Check for null and innovation status
         if($innovation ==null)
         {
-            Log::warning('Requested innovation not found', [$request->innov_id]);
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
         if($innovation->status != "READY")
         {
-            Log::warning('Requested innovation can not be submitted', [$request->innov_id]);
+            Log::warning('Requested innovation can not be submitted', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation can not be submitted'], 202);
         }
         //Check if user is an author
@@ -427,9 +538,260 @@ class InnovationController extends Controller
         }
 
         $innovation->status = "SUBMITTED";
+        $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
         Log::info('Submitting innovation', [$innovation]);
         return response()->json(["result" => "ok"], 201);
+
+    }
+
+
+    //Assign a reviewer to an innovation with status SUBMITTED based on reviewer_id given              {admin}
+    public function assignReviewer(Request $request)
+    {
+        //Request vallidation
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'reviewer_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+
+        //Check user is admin
+        $adminUser = User::find($request->user_id);
+        if(in_array("Administrator", $adminUser->permissions))
+        {
+            Log::info('Assign reviewer requested by administrator: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+        }
+
+        //Check user is reviewer
+        $reviewUser = User::find($request->reviewer_id);
+        if(in_array("Reviewer", $reviewUser->permissions))
+        {
+            Log::info('Requested user has Reviewer permissions: ', [$request->reviewer_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+        }
+
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "SUBMITTED")
+            ->orderBy('version', 'desc')
+            ->first();
+
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        $tempReviewersArray = $innovation->reviewerIds;
+        if(in_array($request->reviewer_id, $tempReviewersArray))
+        {
+            Log::info('Requested reviewer has already been assigned this innovation: ', [$request->reviewer_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested reviewer has already been assigned this innovation: '], 202);
+        }
+
+        $currentTime = round(microtime(true) * 1000);
+        array_push($tempReviewersArray, $request->reviewer_id);
+        $innovation->reviewerIds = $tempReviewersArray;
+        $innovation->status = "UNDER_REVIEW";
+        $innovation->updatedAt = $currentTime;
+        $innovation->assignedAt = $currentTime;
+
+        $innovation->save();
+        Log::info('Assigning innovation to reviewer ', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
+    }
+
+    //Add comments to an innovation that is under review              {reviewer}
+    public function addComment(Request $request)
+    {
+        //Request vallidation
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'comments' => 'present|nullable|string',
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is reviewer
+        $reviewUser = User::find($request->user_id);
+        if(in_array("Reviewer", $reviewUser->permissions))
+        {
+            Log::info('Requested user has Reviewer permissions: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+        }
+
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "UNDER_REVIEW")
+            ->orderBy('version', 'desc')
+            ->first();
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+
+        //Check innovation has been assigned to reviewer with user_id
+        if(in_array($request->user_id, $innovation->reviewerIds))
+        {
+            Log::info('Requested user has been assigned this innovation: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('Requested user has not been assigned this innovation: ', [$request->user_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested user has not been assigned this innovation'], 202);
+        }
+
+        //Add comments, log and return response
+        $innovation->comments = $request->comments;
+        $innovation->updatedAt = round(microtime(true) * 1000);
+        $innovation->save();
+        Log::info('Adding comments to under review innovation ', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
+
+    }
+
+    //Reject a submitted innovation                                   {user, reviewer}
+    public function rejectInnovation(Request $request)
+    {
+        //Request vallidation
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'comments' => 'present|nullable|string',
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is reviewer
+        $reviewUser = User::find($request->user_id);
+        if(in_array("Reviewer", $reviewUser->permissions))
+        {
+            Log::info('Requested user has Reviewer permissions: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+        }
+
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "UNDER_REVIEW")
+            ->orderBy('version', 'desc')
+            ->first();
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        //Check innovation has been assigned to reviewer with user_id
+        if(in_array($request->user_id, $innovation->reviewerIds))
+        {
+            Log::info('Requested user has been assigned this innovation: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('Requested user has not been assigned this innovation: ', [$request->user_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested user has not been assigned this innovation'], 202);
+        }
+
+        //Update innovation, log and return response
+        $innovation->comments = $request->comments;
+        $innovation->status = "REJECTED";
+        $innovation->updatedAt = round(microtime(true) * 1000);
+        $innovation->save();
+        Log::info('Rejecting innovation and updating comments ', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
+    }
+
+    //Publish a submitted innovation                                {user, reviewer}
+    public function publishInnovation(Request $request)
+    {
+        //Request vallidation
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is reviewer
+        $reviewUser = User::find($request->user_id);
+        if(in_array("Reviewer", $reviewUser->permissions))
+        {
+            Log::info('Requested user has Reviewer permissions: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+        }
+
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "UNDER_REVIEW")
+            ->orderBy('version', 'desc')
+            ->first();
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        //Check innovation has been assigned to reviewer with user_id
+        if(in_array($request->user_id, $innovation->reviewerIds))
+        {
+            Log::info('Requested user has been assigned this innovation: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('Requested user has not been assigned this innovation: ', [$request->user_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested user has not been assigned this innovation'], 202);
+        }
+
+        //Update innovation, log and return response
+        $innovation->status = "ACCEPTED";
+        $innovation->updatedAt = round(microtime(true) * 1000);
+        $innovation->save();
+        Log::info('Publishing innovation', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
+
 
     }
 
@@ -493,11 +855,67 @@ class InnovationController extends Controller
 
         Log::info('Deleting innovation', [$innovation]);
         $innovation->deleted = true;
+        $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
 
         return response()->json(["result" => "ok"], 201);
     }
 
+    //Delete an innovation with status REJECTED based on createdAt attribute      {user, admin}
+    public function deleteRejectedInnovation($innovation_id, $user_id, $created_at)
+    {
+        //Validation on input parameters
+        //Validation on innovation_id
+        $validator = Validator::make(["innovation_id" => $innovation_id], [
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+        //Validation on user_id
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
 
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $innovation_id)
+            ->where('deleted', false)
+            ->where('status', "REJECTED")
+            ->where('createdAt', (int)$created_at)
+            ->first();
+
+
+
+        //Check if user has delete privileges (owns the innovation || admin)
+        $user = User::find($user_id);
+        Log::info('Attempting to delete innovation', [$innovation]);
+        if(in_array($user->userId, $innovation->userIds))
+        {
+            Log::info('User has delete privileges',[$user->userId]);
+        }
+        else{
+            if(in_array("Administrator", $user->permissions))
+            {
+                Log::info('User has delete privileges',[$user->userId]);
+            }
+            else{
+                Log::warning('User does not have required privileges', [$user->userId]);
+                return response()->json(["result" => "failed","errorMessage" => 'User does not have required privileges'], 202);
+            }
+
+        }
+
+        Log::info('Deleting rejected innovation', [$innovation]);
+        $innovation->deleted = true;
+        $innovation->updatedAt = round(microtime(true) * 1000);
+        $innovation->save();
+
+        return response()->json(["result" => "ok"], 201);
+    }
 
 }

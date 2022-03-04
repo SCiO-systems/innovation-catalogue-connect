@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Redis;
 
 
 
@@ -18,41 +17,61 @@ class UserController extends Controller
     */
 
     //Check if a user exists
-    public function existsUser($userId)
+    public function existsUser($user_id)
     {
-        $user = User::find($userId);
+        $user = User::find($user_id);
         if($user == null)
         {
-            Log::info('User not found: ', [$userId]);
+            Log::info('User not found: ', [$user_id]);
             return response()->json(["exists" => false], 404);
         }
         else{
-            Log::info('User found: ', [$userId]);
+            Log::info('User found: ', [$user_id]);
             return response()->json(["exists" => true], 201);
         }
     }
 
     //Retrieve existing user
-    public function getUser($userId)
+    public function getUser($user_id)
     {
-        $validator = Validator::make(["userId" => $userId], [
-            'userId' => 'required|exists:App\Models\User,userId|string|numeric',
+        //Validation on user_id
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         ]);
         if ($validator->fails()) {
-            Log::error('Resource Validation Failed: ', [$validator->errors(), $userId]);
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
-        $user = User::find($userId);
+        $user = User::find($user_id);
 
         Log::info('Retrieving user with id: ', [$user->userId]);
         return response()->json(["result" => "ok", "user" => $user], 201);
     }
 
     //Retrieve all the existing users
-    public function getUsers()
+    public function getUsers($user_id)
     {
-        //TODO:check for admin priv maybe???
+        //Validating the input
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is admin
+        $adminUser = User::find($user_id);
+        if(in_array("Administrator", $adminUser->permissions))
+        {
+            Log::info('Fetch all requested by administrator: ', [$user_id]);
+        }
+        else{
+            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+        }
+
         $users =User::all();
         //$users = User::where('permissions', "Administrator")->where('role', "Evaluator")->get();
         Log::info('Retrieving all users ');
@@ -60,22 +79,22 @@ class UserController extends Controller
     }
 
     //Retrieve all the users with "reviewer" permission     {admin}
-    public function getAllReviewers($userId)
+    public function getAllReviewers($user_id)
     {
         //Validating the input
-        $validator = Validator::make(["userId" => $userId], [
-            'userId' => 'required|exists:App\Models\User,userId|string|numeric',
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
         ]);
         if ($validator->fails()) {
-            Log::error('Resource Validation Failed: ', [$validator->errors(), $userId]);
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
         //Check user is admin
-        $adminUser = User::find($userId);
+        $adminUser = User::find($user_id);
         if(in_array("Administrator", $adminUser->permissions))
         {
-            Log::info('Fetch all requested by administrator: ', [$userId]);
+            Log::info('Fetch all requested by administrator: ', [$user_id]);
         }
         else{
             Log::warning('User does not have administrator rights: ', $adminUser->permissions);
@@ -84,7 +103,7 @@ class UserController extends Controller
 
         $reviewers = User::where('permissions', "Reviewer")->get();
         Log::info('Retrieving all reviewers ');
-        return response()->json(["result" => "ok", "users" => $reviewers], 201);
+        return response()->json(["result" => "ok", "reviewers" => $reviewers], 201);
 
     }
 
@@ -97,14 +116,14 @@ class UserController extends Controller
     {
         //TODO: MOOOOOOOAR VALIDATION MOAAAAAAAR (request check etc)
         $rules = array(
-            'userId' => 'required|unique:App\Models\User,userId|string|numeric',
+            'user_id' => 'required|unique:App\Models\User,userId|string|numeric',
             'role' => 'present|nullable|string',
             'permissions' => 'present|array'
         );
 
         $user = new User;
 
-        $user->userId = $request->userId;                   //Users ID
+        $user->userId = $request->user_id;                   //Users ID
         $user->role = "";                                   //User role ("" default value)
         $user->permissions = ["User"];                      //User permission ("user" default value)
 
@@ -131,7 +150,7 @@ class UserController extends Controller
         //TODO: MOOOOOOOAR VALIDATION MOAAAAAAAR (user check etc)
         //Validating the request
         $rules = array(
-            'userId' => 'required|exists:App\Models\User,userId|string|numeric',         //ID must be present and existing in the database
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',         //ID must be present and existing in the database
             'role' => 'present|nullable|string'
         );
         $validator = Validator::make($request->toArray(),$rules);
@@ -141,12 +160,11 @@ class UserController extends Controller
         }
 
         //Updating the role
-        $user = User::find($request->userId);
+        $user = User::find($request->user_id);
         $user->role = $request->role;
         $user->save();
-        Log::info('Updating user role with id: ', [$user->userId, $user->role]);
+        Log::info('Updating user role with id: ', [$user->user_id, $user->role]);
         return response()->json(["result" => "ok"], 201);
-
     }
 
     //Update user permissions      {admin}
@@ -154,8 +172,8 @@ class UserController extends Controller
     {
         //Request validation
         $rules = array(
-            'userId' => 'present|exists:App\Models\User,userId|string|numeric',         //ID must be present and existing in the database
-            'targetId' => 'present|exists:App\Models\User,userId|string|numeric',       // >>       >>              >>          >>
+            'user_id' => 'present|exists:App\Models\User,userId|string|numeric',         //ID must be present and existing in the database
+            'target_id' => 'present|exists:App\Models\User,userId|string|numeric',       // >>       >>              >>          >>
             'permissions' => 'present|array'
         );
         $validator = Validator::make($request->toArray(),$rules);
@@ -165,16 +183,16 @@ class UserController extends Controller
         }
 
         //Check if usedId has admin privileges
-        $adminUser = User::find($request->userId);
+        $adminUser = User::find($request->user_id);
         if(in_array("Administrator", $adminUser->permissions))
         {
-            Log::info('Update requested by administrator: ', [$request->userId]);
+            Log::info('Update requested by administrator: ', [$request->user_id]);
         }
         else{
             Log::warning('User does not have administrator rights: ', $adminUser->permissions);
             return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
         }
-        $user = User::find($request->targetId);
+        $user = User::find($request->target_id);
         $newPermissions = $request->permissions;
         //Check if targetId has admin privileges and if they are included in the request
         if(in_array("Administrator", $user->permissions))
@@ -202,12 +220,12 @@ class UserController extends Controller
         }
 
         //Updating the permissions of the targetId
-        $user = User::find($request->targetId);
+        $user = User::find($request->target_id);
         $user->permissions = $newPermissions;
 
         //Save new data, log and return
         $user->save();
-        Log::info('Updating user permissions with id: ', [$user->userId, $user->permissions]);
+        Log::info('Updating user permissions with id: ', [$user->user_id, $user->permissions]);
         return response()->json(["result" => "ok"], 201);
 
     }
@@ -240,9 +258,9 @@ class UserController extends Controller
 
         $vocabToArray = (array)$result;
         $clarisa_vocabulary = array();
-        Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_innovation_type"]);
-        Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_business_category"]);
-        foreach ($usefulHeaders as $header)
+        //Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_innovation_type"]);
+        //Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_business_category"]);
+        /*foreach ($usefulHeaders as $header)
         {
             //Log::info("HERE'S THE VOCAB", $vocabToArray[$header]);
             $value = array();
@@ -269,20 +287,59 @@ class UserController extends Controller
             }
             $singleHeader = array("header" => $header, "value" => $value);
             array_push($clarisa_vocabulary, $singleHeader);
+        }*/
+
+        //Log::info("HERE'S THE VOCAB", $vocabToArray["clarisa_sdg_targets"]);
+        $sdgTargetPropertiesNames = array();
+        foreach ($vocabToArray["clarisa_sdg_targets"] as $sdgProperties) //sdgProperties is object
+        {
+            $sdgTargetPropertiesValues[$sdgProperties->sdg->usndCode][] = array("id" => $sdgProperties->id , "value" => $sdgProperties->sdgTargetCode." - ".$sdgProperties->sdgTarget);
+            if(!isset($sdgTargetPropertiesNames[$sdgProperties->sdg->usndCode]))
+            {
+                $sdgTargetPropertiesNames[$sdgProperties->sdg->usndCode][] = $sdgProperties->sdg->fullName;
+            }
         }
 
+        $sdgTargetValue = array();
+        foreach ($sdgTargetPropertiesValues as $targetId => $targets) //$targets is array of sdg_target objects
+        {
+            //Log::info("HERE'S THE VOCAB", ["id" => $targetId, "title" => $sdgTargetsNames[$targetId][0], "value" => $targets]);
+            $singleTarget = array("id" => $targetId, "title" => $sdgTargetPropertiesNames[$targetId][0], "value" => $targets);
+            array_push($sdgTargetValue, $singleTarget);
+        }
+        $singleHeader = array("header" => "clarisa_sdg_targets", "value" => $sdgTargetValue);
+        array_push($clarisa_vocabulary, $singleHeader);
+
+
+        $indicatorTitles = array();
+        foreach ($vocabToArray["clarisa_impact_areas_indicators"] as $indicatorProperties)
+        {
+            $singleIndicatorPropertiesValues[$indicatorProperties->impactAreaId][] = array("id" => $indicatorProperties->indicatorId, "value" => $indicatorProperties->indicatorStatement);
+            if(!isset($indicatorTitles[$indicatorProperties->impactAreaId]))
+            {
+                $indicatorTitles[$indicatorProperties->impactAreaId][] = $indicatorProperties->impactAreaName;
+            }
+        }
+
+        $impactAreaIndicatorValue = array();
+        foreach ($singleIndicatorPropertiesValues as $impactAreaId => $impactAreaIndicators)
+        {
+            $singleIndicator = array("id" => $impactAreaId, "title" => $indicatorTitles[$impactAreaId][0], "value" => $impactAreaIndicators);
+            array_push($impactAreaIndicatorValue, $singleIndicator);
+        }
+        $singleHeader = array("header" => "clarisa_impact_areas_indicators", "value" => $impactAreaIndicatorValue);
+        array_push($clarisa_vocabulary, $singleHeader);
 
         return response()->json($clarisa_vocabulary, 201);
     }
 
 
 
-    public function morningHead(Request $request)
+    public function morningHead($timestamp)
     {
 
-        $headId = $request->header('user_id');
-        $result = User::find($headId);
-        return response()->json(["result" => "ok", $result], 201);
+        $date = date('Y-m-d H:i:s', (int)$timestamp);
+        return response()->json(["result" => "ok", "date" => $date], 201);
     }
 
 
