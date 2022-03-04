@@ -318,20 +318,24 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
+        $currentTime = round(microtime(true) * 1000);
+
         //generate uuid with INNOV- prefix included
         $uuid = Str::uuid()->toString();
         $innovation->innovId = 'INNOV-'.$uuid;
 
         //Data assignment from resource and local generation
         $innovation->userIds = [$request->user_id];
-        $innovation->status = $request->status;                 //DRAFT || READY TODO:(??ask nick??)
-        $innovation->version = 1;                               //First time creating so version 1
-        $innovation->persistId = [];                            //Later will add hdl, empty for now
-        $innovation->deleted = false;                           //True for soft deleted innovations
-        $innovation->reviewerIds = [];                          //Array of strings, empty on initialise
-        $innovation->comments = " ";                            //Reviewer's comments, empty on initialise
-        $innovation->timestamp = time();                        //Timestamp for creation of the innovation
-        $innovation->formData = $request->form_data;            //The actual innovation data
+        $innovation->status = $request->status;                       //DRAFT || READY
+        $innovation->version = 1;                                     //First time creating so version 1
+        $innovation->persistId = [];                                  //Later will add hdl, empty for now
+        $innovation->deleted = false;                                 //True for soft deleted innovations
+        $innovation->reviewerIds = [];                                //Array of strings, empty on initialise
+        $innovation->comments = "";                                   //Reviewer's comments, empty on initialise
+        $innovation->createdAt = $currentTime;                        //Date of creation
+        $innovation->updatedAt = $currentTime;                        //Date of last update, same as creation at first
+        $innovation->assignedAt = "";                                 //Date of assignment to reviewer
+        $innovation->formData = $request->form_data;                  //The actual innovation data
 
         //Validation on the final user entities
         //for later
@@ -405,19 +409,22 @@ class InnovationController extends Controller
             Log::warning('New version of innovation already existing in Draft or Ready status', [$newVersionInnovations]);
             return response()->json(["result" => "failed","errorMessage" => 'New version of innovation already existing in Draft or Ready status'], 202);
         }
+        $currentTime = round(microtime(true) * 1000);
 
-
+        //Data assignment from resource and local generation
         $innovation = new Innovation;
         $innovation->innovId = $request->innovation_id;
-        $innovation->userIds = [$request->user_id];             //Array for migration and legacy reasons
-        $innovation->status = $request->status;                 //DRAFT || READY
-        $innovation->version = $newVersion;                     //Updating so $request->version + 1
-        $innovation->persistId = [];                            //Later will add hdl, empty for now
-        $innovation->deleted = false;                           //True for soft deleted innovations
-        $innovation->reviewerIds = [];                          //Array of strings, empty on initialise
-        $innovation->comments = " ";                            //Reviewer's comments, empty on initialise
-        $innovation->timestamp = time();                        //Timestamp for creation of the innovation
-        $innovation->formData = $request->form_data;            //The actual innovation data
+        $innovation->userIds = [$request->user_id];            //Array for migration and legacy reasons
+        $innovation->status = $request->status;                //DRAFT || READY
+        $innovation->version = $newVersion;                    //Updating so $request->version + 1
+        $innovation->persistId = [];                           //Later will add hdl, empty for now
+        $innovation->deleted = false;                          //True for soft deleted innovations
+        $innovation->reviewerIds = [];                         //Array of strings, empty on initialise
+        $innovation->comments = " ";                           //Reviewer's comments, empty on initialise
+        $innovation->createdAt = $currentTime;                 //Date of creation
+        $innovation->updatedAt = $currentTime;                 //Date of last update, same as creation at first
+        $innovation->assignedAt = "";                          //Date of assignment to reviewer
+        $innovation->formData = $request->form_data;           //The actual innovation data
 
         //Save to database and log
         $innovation->save();
@@ -476,6 +483,7 @@ class InnovationController extends Controller
         //Patch the innovation data
         $innovation->formData = $request->form_data;
         $innovation->status = $request->status;
+        $innovation->updatedAt = round(microtime(true) * 1000);
 
         //Save, log and response
         $innovation->save();
@@ -530,6 +538,7 @@ class InnovationController extends Controller
         }
 
         $innovation->status = "SUBMITTED";
+        $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
         Log::info('Submitting innovation', [$innovation]);
         return response()->json(["result" => "ok"], 201);
@@ -596,9 +605,13 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => 'Requested reviewer has already been assigned this innovation: '], 202);
         }
 
+        $currentTime = round(microtime(true) * 1000);
         array_push($tempReviewersArray, $request->reviewer_id);
         $innovation->reviewerIds = $tempReviewersArray;
         $innovation->status = "UNDER_REVIEW";
+        $innovation->updatedAt = $currentTime;
+        $innovation->assignedAt = $currentTime;
+
         $innovation->save();
         Log::info('Assigning innovation to reviewer ', [$innovation]);
         return response()->json(["result" => "ok"], 201);
@@ -657,6 +670,7 @@ class InnovationController extends Controller
 
         //Add comments, log and return response
         $innovation->comments = $request->comments;
+        $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
         Log::info('Adding comments to under review innovation ', [$innovation]);
         return response()->json(["result" => "ok"], 201);
@@ -716,6 +730,7 @@ class InnovationController extends Controller
         //Update innovation, log and return response
         $innovation->comments = $request->comments;
         $innovation->status = "REJECTED";
+        $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
         Log::info('Rejecting innovation and updating comments ', [$innovation]);
         return response()->json(["result" => "ok"], 201);
@@ -772,6 +787,7 @@ class InnovationController extends Controller
 
         //Update innovation, log and return response
         $innovation->status = "ACCEPTED";
+        $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
         Log::info('Publishing innovation', [$innovation]);
         return response()->json(["result" => "ok"], 201);
@@ -839,13 +855,14 @@ class InnovationController extends Controller
 
         Log::info('Deleting innovation', [$innovation]);
         $innovation->deleted = true;
+        $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
 
         return response()->json(["result" => "ok"], 201);
     }
 
-    //Delete an innovation with status REJECTED based on timestamp attribute      {user, admin}
-    public function deleteRejectedInnovation($innovation_id, $user_id, $timestamp)
+    //Delete an innovation with status REJECTED based on createdAt attribute      {user, admin}
+    public function deleteRejectedInnovation($innovation_id, $user_id, $created_at)
     {
         //Validation on input parameters
         //Validation on innovation_id
@@ -869,7 +886,7 @@ class InnovationController extends Controller
         $innovation = Innovation::where('innovId', $innovation_id)
             ->where('deleted', false)
             ->where('status', "REJECTED")
-            ->where('timestamp', (int)$timestamp)
+            ->where('createdAt', (int)$created_at)
             ->first();
 
 
@@ -895,6 +912,7 @@ class InnovationController extends Controller
 
         Log::info('Deleting rejected innovation', [$innovation]);
         $innovation->deleted = true;
+        $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
 
         return response()->json(["result" => "ok"], 201);
