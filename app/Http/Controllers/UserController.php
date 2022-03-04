@@ -103,7 +103,7 @@ class UserController extends Controller
 
         $reviewers = User::where('permissions', "Reviewer")->get();
         Log::info('Retrieving all reviewers ');
-        return response()->json(["result" => "ok", "users" => $reviewers], 201);
+        return response()->json(["result" => "ok", "reviewers" => $reviewers], 201);
 
     }
 
