@@ -59,6 +59,7 @@ Route::post('user/name/autocomplete', [UserController::class, 'autocompleteUsers
 //Admin calls and routes for user data
 Route::patch('admin/{user_id}/update/permissions', [UserController::class, 'updatePermissionsUser']);
 Route::get('admin/{user_id}/getReviewers', [UserController::class, 'getAllReviewers']);
+Route::post('admin/{user_id}/users/dataPaginated', [UserController::class, 'getUsersPaginated']);
 
 /*
 //Innovation calls and routes
