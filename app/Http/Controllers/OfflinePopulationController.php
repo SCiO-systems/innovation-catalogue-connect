@@ -19,11 +19,11 @@ class OfflinePopulationController extends Controller
             'port' => env('REDIS_PORT', ''),
         ]);
 
-        /*$deleteResult = $client->del('mel_users_innovation');
+        $deleteResult = $client->del('mel_users_innovation');
         if($deleteResult == 0)
         {
             return response('I didnt delete a thing');
-        }*/
+        }
 
         //Query all user data, filter based on activity and order based on user_id
         $properBody = [
@@ -103,6 +103,10 @@ class OfflinePopulationController extends Controller
                     $user->role = "";                                           //User role ("" default value)
                     $user->fullName = $melUser["name"];
                     $user->email = $melUser["email"];
+                    $user->country = $melUser["location"];
+                    $user->organization = $melUser["partner_full_name"];
+                    $user->website = "";
+                    $user->organizationLogo = "";
 
                     //Save to database and log
                     Log::info('Adding new user with id: ', [$user->userId]);
@@ -114,7 +118,7 @@ class OfflinePopulationController extends Controller
 
                 //Set redis data
                 $score = unpack('I*', $user->fullName)[1];
-                $redisUser = array("user_id" => $user->userId, "permissions" => $user->permissions,"name" => $user->fullName, "email" => $user->email);
+                $redisUser = array("user_id" => $user->userId, "permissions" => $user->permissions,"name" => $user->fullName);
 
                 //Αdd to Redis
                 $redisUser = json_encode($redisUser);
@@ -132,14 +136,15 @@ class OfflinePopulationController extends Controller
         /////////////////////////////////////
         //Temporary fix, add specific profiles
         $score = unpack('I*', "George Gkoumas")[1];
-        $testUser = array("user_id" => "25120", "permissions" => ["User", "Reviewer", "Administrator"],"name" => "George Gkoumas", "email" => "giorgos@scio.systems");
+        $testUser = array("user_id" => "25120", "permissions" => ["User", "Reviewer", "Administrator"],"name" => "George Gkoumas");
         $testUser = json_encode($testUser);
         $resultAdd = $client->zadd('mel_users_innovation', [$testUser =>  $score]);
 
+        /*
         $score = unpack('I*', "Quang Bao Le")[1];
-        $testUser = array("user_id" => "102", "permissions" => ["User", "Reviewer", "Administrator"],"name" => "Quang Bao Le", "email" => "Q.Le@cgiar.org");
+        $testUser = array("user_id" => "102", "permissions" => ["User", "Reviewer", "Administrator"],"name" => "Quang Bao Le");
         $testUser = json_encode($testUser);
-        $resultAdd = $client->zadd('mel_users_innovation', [$testUser =>  $score]);
+        $resultAdd = $client->zadd('mel_users_innovation', [$testUser =>  $score]);*/
         ////////////////////////////////////
 
         $resultRedis = $client->zrange('mel_users_innovation', 0, -1);
