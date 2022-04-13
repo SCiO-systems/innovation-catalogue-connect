@@ -16,18 +16,60 @@ class UserController extends Controller
     //GET
     */
 
-    //Check if a user exists
-    public function existsUser($user_id)
+    //Check if a user exists and return the proper usable info from MEL
+    public function existsUser($profile_id)
     {
-        $user = User::find($user_id);
+
+        //Fetch the user from MEL based on the profile id given
+        $melResponse = Http::withHeaders(["Authorization" =>env('MEL_API_KEY','')])
+            ->post(env('MEL_SEARCH_USERS',''), [
+                "query" => [
+                    "bool" => [
+                        "must" => [
+                            [
+                                "match" => [
+                                    "profile_id" => $profile_id
+                                ]
+                            ],
+                            [
+                                "term" => [
+                                    "user_is_active" => [
+                                        "value" => "1"
+                                    ]
+                                ]
+                            ],
+                            [
+                                "term" => [
+                                    "profile_is_active" => [
+                                        "value" => "1"
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]);
+        $melResponseDecoded = json_decode($melResponse, true);
+        //Check if user was not found
+        if($melResponseDecoded["showing_records"] == 0)
+        {
+            Log::error('User not found in MEL', [$profile_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'User not found in MEL'], 400);
+        }
+        $melData = $melResponseDecoded["data"][0];
+
+
+        $user = User::find((string)$melData["user_id"]);
         if($user == null)
         {
-            Log::info('User not found: ', [$user_id]);
-            return response()->json(["exists" => false], 404);
+            $userData = array("user_id" => (string)$melData["user_id"], "name" => $melData["name"], "email" => $melData["email"], "country" => $melData["location"], "organization" => $melData["partner_full_name"]);
+            Log::info('User not found: ', [$userData["user_id"]]);
+            return response()->json(["result" => "ok", "exists" => false, "data" => $userData], 404);
         }
         else{
-            Log::info('User found: ', [$user_id]);
-            return response()->json(["exists" => true], 201);
+            $userData = array("user_id" => (string)$melData["user_id"]);
+            Log::info('User found: ', [$userData["user_id"]]);
+            return response()->json(["result" => "ok","exists" => true, "data" => $userData], 201);
         }
     }
 
@@ -107,6 +149,71 @@ class UserController extends Controller
 
     }
 
+    //Fetch autocomplete suggestions from MEL based on name (10 results max)   {user}
+    public function autocompleteUsers(Request $request)
+    {
+        //Validating the input
+        $validator = Validator::make(["users_name" => $request->autocomplete], [
+            'users_name' => 'required|string',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $request->autocomplete]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Query user data from MEL based on $users_name with fuzziness
+        $autocompleteResponse = Http::withHeaders(["Authorization" =>env('MEL_API_KEY','')])
+            ->post(env('MEL_SEARCH_USERS',''), [
+                "query" => [
+                    "bool" => [
+                        "must" => [
+                            [
+                                "match" => [
+                                    "name" => [
+                                        "query" => $request->autocomplete,
+                                        "fuzziness" => 1
+                                    ]
+                                ]
+                            ],
+                            [
+                                "term" => [
+                                    "user_is_active" => [
+                                        "value" => "1"
+                                    ]
+                                ]
+                            ],
+                            [
+                                "term" => [
+                                    "profile_is_active" => [
+                                        "value" => "1"
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]);
+
+        $autocompleteArray = json_decode($autocompleteResponse, true);
+        $autocomplete = array();
+        Log::info("These are the autocomplete suggestions for name", $autocompleteArray);
+        foreach ($autocompleteArray["data"] as $usersSuggested)
+        {
+            if(str_contains($usersSuggested["photo"], "-user-"))
+            {
+                $userPhoto = $usersSuggested["photo"];
+            }
+            else{
+                //Hardcoded the url used by MEL
+                $userPhoto = "https://mel.cgiar.org/graph/getimage/width/164/height/164/image/-user-".$usersSuggested["photo"];
+            }
+            $desiredData = array("name" => $usersSuggested["name"], "photo" => $userPhoto);
+            array_push($autocomplete, $desiredData);
+        }
+
+        return response()->json(["result" => "ok", "autocomplete_suggestions" => $autocomplete], 201);
+    }
+
 
     /*
     //POST
@@ -118,14 +225,22 @@ class UserController extends Controller
         $rules = array(
             'userId' => 'required|unique:App\Models\User,userId|string|numeric',
             'role' => 'present|nullable|string',
-            'permissions' => 'present|array'
+            'permissions' => 'present|array',
+            'email' => 'present|nullable|string',
+            'fullName' => 'present|nullable|string'
         );
 
         $user = new User;
 
-        $user->userId = $request->user_id;                   //Users ID
+        $user->userId = $request->user_id;                  //Users ID
         $user->role = "";                                   //User role ("" default value)
-        $user->permissions = ["User"];                      //User permission ("user" default value)
+        $user->permissions = ["User"];                      //User permission ("User" default value)
+        $user->fullName = $request->name;
+        $user->email = $request->email;
+        $user->country = $request->country;
+        $user->organization = $request->organization;
+        $user->website = "";
+        $user->organizationLogo = "";
 
         //Validation on the final user entities
         $validator = Validator::make($user->attributesToArray(),$rules);
@@ -136,7 +251,7 @@ class UserController extends Controller
 
         //Save to database and log
         $user->save();
-        Log::info('Adding new user with id: ', [$user->userId, $request->toArray() ]);
+        Log::info('Adding new user with id: ', [$user->userId, $request->toArray()]);
 
         return response()->json(["result" => "ok"], 201);
     }
