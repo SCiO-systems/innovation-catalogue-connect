@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-
+use Predis\Client as PredisClient;
 
 
 class UserController extends Controller
@@ -19,7 +19,6 @@ class UserController extends Controller
     //Check if a user exists and return the proper usable info from MEL
     public function existsUser($profile_id)
     {
-
         //Fetch the user from MEL based on the profile id given
         $melResponse = Http::withHeaders(["Authorization" =>env('MEL_API_KEY','')])
             ->post(env('MEL_SEARCH_USERS',''), [
@@ -118,6 +117,54 @@ class UserController extends Controller
         //$users = User::where('permissions', "Administrator")->where('role', "Evaluator")->get();
         Log::info('Retrieving all users ');
         return response()->json(["result" => "ok", "users" => $users], 201);
+    }
+
+    //Get all users from Redis (lazy loading)    {admin}
+    public function getUsersPaginated(Request $request)
+    {
+        $rules = array(
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'offset' => 'required|int',
+            'limit' => 'required|int|gt:offset'
+        );
+
+        $validator = Validator::make($request->toArray(),$rules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed", "errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check if user is admin
+
+        //Check user is admin
+        $adminUser = User::find($request->user_id);
+        if(in_array("Administrator", $adminUser->permissions))
+        {
+            Log::info('Fetch all requested by administrator: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+        }
+
+        //Redis
+        $client = new PredisClient([
+            'scheme' => 'tcp',
+            'host'   => env('REDIS_HOST',''),
+            'port'   => env('REDIS_PORT',''),
+        ]);
+
+        $userCount = $client->zcount('mel_users_innovation', -INF, +INF);
+        $resultRedis = $client->zrange('mel_users_innovation', $request->offset, $request->limit);
+        $usersFromRedis = array();
+        foreach($resultRedis as $singleUser)
+        {
+            array_push($usersFromRedis, json_decode($singleUser, true));
+        }
+
+
+        Log::info("Retrieving users from Redis");
+        return response()->json(["result" => "ok", "users" => $usersFromRedis, "total_users" => $userCount], 201);
     }
 
     //Retrieve all the users with "reviewer" permission     {admin}
