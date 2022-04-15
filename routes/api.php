@@ -59,6 +59,7 @@ Route::post('user/name/autocomplete', [UserController::class, 'autocompleteUsers
 //Admin calls and routes for user data
 Route::patch('admin/{user_id}/update/permissions', [UserController::class, 'updatePermissionsUser']);
 Route::get('admin/{user_id}/getReviewers', [UserController::class, 'getAllReviewers']);
+Route::get('admin/{user_id}/getSRE', [UserController::class, 'getAllScalingReadinessExperts']);
 Route::post('admin/{user_id}/users/dataPaginated', [UserController::class, 'getUsersPaginated']);
 
 /*
@@ -75,11 +76,13 @@ Route::delete('innovation/{innovation_id}/deleteRejected/user/{user_id}/createdA
 //Admin calls and routes for innovation data
 Route::get('admin/{user_id}/getInnovations', [InnovationController::class, 'getAllInnovations']);
 Route::patch('admin/{user_id}/assignReviewers', [InnovationController::class, 'assignReviewers']);
+Route::patch('admin/{user_id}/assignSRE', [InnovationController::class, 'assignScalingReadinessExpert']);
 
 //Reviewer calls and routes for innovation data
 Route::get('reviewer/{user_id}/getAssignedInnovations', [InnovationController::class, 'getAssignedInnovations']);
 Route::patch('innovation/{user_id}/addComment', [InnovationController::class, 'addComment']); //maybe change this
 Route::patch('innovation/{innovation_id}/reject', [InnovationController::class, 'rejectInnovation']);
+Route::patch('innovation/{innovation_id}/approve', [InnovationController::class, 'approveInnovation']);
 Route::patch('innovation/{innovation_id}/publish', [InnovationController::class, 'publishInnovation']);
 
 /*
