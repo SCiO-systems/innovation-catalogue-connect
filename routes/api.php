@@ -85,6 +85,9 @@ Route::patch('innovation/{innovation_id}/reject', [InnovationController::class, 
 Route::patch('innovation/{innovation_id}/approve', [InnovationController::class, 'approveInnovation']);
 Route::patch('innovation/{innovation_id}/publish', [InnovationController::class, 'publishInnovation']);
 
+//SRE calls and routes for innovation data
+Route::get('sre/{user_id}/getAssignedInnovations', [InnovationController::class, 'getSREAssignedInnovations']);
+
 /*
 //RTB Search routes and calls
 */
