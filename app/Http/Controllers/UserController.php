@@ -277,6 +277,13 @@ class UserController extends Controller
             'fullName' => 'present|nullable|string'
         );
 
+        //Redis
+        $client = new PredisClient([
+            'scheme' => 'tcp',
+            'host' => env('REDIS_HOST', ''),
+            'port' => env('REDIS_PORT', ''),
+        ]);
+
         $user = new User;
 
         $user->userId = $request->user_id;                  //Users ID
@@ -300,6 +307,19 @@ class UserController extends Controller
         $user->save();
         Log::info('Adding new user with id: ', [$user->userId, $request->toArray()]);
 
+
+        //Set redis data
+        $score = unpack('I*', $user->fullName)[1];
+        $redisUser = array("user_id" => $user->userId, "permissions" => $user->permissions,"name" => $user->fullName);
+        //Αdd to Redis
+        $redisUser = json_encode($redisUser);
+        $resultAdd = $client->zadd('mel_users_innovation', [$redisUser =>  $score]);
+        if($resultAdd == 0)
+        {
+            Log::error('New user not added to Redis, already exists', [$redisUser]);
+        }
+        Log::info('New user added to Redis', [$redisUser]);
+
         return response()->json(["result" => "ok"], 201);
     }
 
@@ -307,13 +327,15 @@ class UserController extends Controller
     //PUT
     */
     //Update user roles         {user}
-    public function updateRoleUser(Request $request)
+    public function editUser(Request $request)
     {
         //TODO: MOOOOOOOAR VALIDATION MOAAAAAAAR (user check etc)
         //Validating the request
         $rules = array(
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',         //ID must be present and existing in the database
-            'role' => 'present|nullable|string'
+            'role' => 'present|nullable|string',
+            'website' => 'present|nullable|string',
+            'organization_logo' => 'present|nullable|string'
         );
         $validator = Validator::make($request->toArray(),$rules);
         if ($validator->fails()) {
@@ -343,6 +365,13 @@ class UserController extends Controller
             Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
+
+        //Redis
+        $client = new PredisClient([
+            'scheme' => 'tcp',
+            'host' => env('REDIS_HOST', ''),
+            'port' => env('REDIS_PORT', ''),
+        ]);
 
         //Check if usedId has admin privileges
         $adminUser = User::find($request->user_id);
@@ -385,9 +414,26 @@ class UserController extends Controller
         $user = User::find($request->target_id);
         $user->permissions = $newPermissions;
 
+        //Prepare redis data
+        $score = unpack('I*', $user->fullName)[1];
+        $redisUser = array("user_id" => $user->userId, "permissions" => $user->permissions,"name" => $user->fullName);
+        $deleteResult = $client->zRemRangeByScore('mel_users_innovation', $score, $score);
+        if($deleteResult == 0)
+        {
+            return response('I didnt delete a thing');
+        }
+        //Αdd to Redis
+        $redisUser = json_encode($redisUser);
+        $resultAdd = $client->zadd('mel_users_innovation', [$redisUser =>  $score]);
+        if($resultAdd == 0)
+        {
+            Log::info('Mel user not added to redis, already exists', [$redisUser]);
+        }
+
+
         //Save new data, log and return
         $user->save();
-        Log::info('Updating user permissions with id: ', [$user->user_id, $user->permissions]);
+        Log::info('Updating user permissions with id: ', [$user->userId, $user->permissions]);
         return response()->json(["result" => "ok"], 201);
 
     }
