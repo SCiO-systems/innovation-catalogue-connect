@@ -649,9 +649,70 @@ class InnovationController extends Controller
         $innovation->status = "UNDER_REVIEW";
         $innovation->updatedAt = $currentTime;
         $innovation->assignedAt = $currentTime;
-
         $innovation->save();
         Log::info('Assigning innovation to reviewer ', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
+    }
+
+    //Assign a scaling readiness expert to an innovation with status TAKE_FINAL_DECISION based on reviewer_id given              {admin}
+    public function assignScalingReadinessExpert(Request $request)
+    {
+        //Request vallidation
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'sre_id' => 'required|exists:App\Models\User,userId|string|numeric'
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is admin
+        $adminUser = User::find($request->user_id);
+        if(in_array("Administrator", $adminUser->permissions))
+        {
+            Log::info('Assign scaling readiness expert requested by administrator: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+        }
+
+        //Check target user is sre and construct the scalingReadinessExpert property
+        $sreUser = User::find($request->sre_id);
+        if(in_array("Scaling Readiness Expert", $sreUser->permissions))
+        {
+            Log::info('Requested user has Reviewer permissions: ', [$request->sre_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $sreUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+        }
+        $sreEnhanced = new stdClass();
+        $sreEnhanced->reviewerId = $sreUser->userId;
+        $sreEnhanced->fullName = $sreUser->fullName;
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "TAKE_FINAL_DECISION")
+            ->orderBy('version', 'desc')
+            ->first();
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        $currentTime = round(microtime(true) * 1000);
+        $innovation->scalingReadinessExpert = $sreEnhanced;
+        $innovation->status = "UNDER_SR_ASSESSMENT";
+        $innovation->updatedAt = $currentTime;
+        $innovation->assignedAt = $currentTime;
+        $innovation->save();
+        Log::info('Assigning innovation to scaling readiness expert ', [$innovation]);
         return response()->json(["result" => "ok"], 201);
     }
 
@@ -772,6 +833,72 @@ class InnovationController extends Controller
         $innovation->save();
         Log::info('Rejecting innovation and updating comments ', [$innovation]);
         return response()->json(["result" => "ok"], 201);
+    }
+
+    //Approve a submitted innovation for the final decision         {reviewer}
+    public function approveInnovation(Request $request)
+    {
+        //Request vallidation
+        $requestRules = array(
+            'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        );
+
+        $validator = Validator::make($request->toArray(),$requestRules);
+        if ($validator->fails()) {
+            Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is reviewer
+        $reviewUser = User::find($request->user_id);
+        if(in_array("Reviewer", $reviewUser->permissions))
+        {
+            Log::info('Requested user has reviewer rights: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+        }
+
+        //Fetch the requested innovation
+        $innovation = Innovation::where('innovId', $request->innovation_id)
+            ->where('deleted', false)
+            ->where('status', "UNDER_REVIEW")
+            ->orderBy('version', 'desc')
+            ->first();
+
+        if( $innovation == null)
+        {
+            Log::warning('Requested innovation not found', [$request->innovation_id]);
+            return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        //Construct the reviewer object
+        $reviewerEnhanced = new stdClass();
+        $reviewerEnhanced->reviewerId = $reviewUser->userId;
+        $reviewerEnhanced->fullName = $reviewUser->fullName;
+
+        //TODO: Fix this check
+        //Check innovation has been assigned to reviewer with user_id
+        /*if(in_array($reviewerEnhanced, $innovation->reviewers))
+        {
+            Log::info('Requested user has been assigned this innovation: ', $request->user_id);
+        }
+        else{
+            Log::warning('Requested user has not been assigned this innovation: ', [$reviewerEnhanced]);
+            Log::info('WHAT IS THIS BOI: ', $innovation->reviewers);
+            return response()->json(["result" => "failed", "reviewer" => $reviewerEnhanced, "errorMessage" => 'Requested user has not been assigned this innovation'], 202);
+        }*/
+
+        //Update innovation, log and return response
+        $innovation->status = "TAKE_FINAL_DECISION";
+        $innovation->updatedAt = round(microtime(true) * 1000);
+        $innovation->save();
+        Log::info('Approving innovation for final decision', [$innovation]);
+        return response()->json(["result" => "ok"], 201);
+
+
     }
 
     //Publish a submitted innovation                                {user, reviewer}
