@@ -197,6 +197,49 @@ class InnovationController extends Controller
         }
     }
 
+    //Get all the assigned for review innovations based on userId            {user, reviewer}
+    public function getSREAssignedInnovations($user_id)
+    {
+        //Validating the input
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user has reviewer permissions
+        $sreUser = User::find($user_id);
+        if(in_array("Scaling Readiness Expert", $sreUser->permissions))
+        {
+            Log::info('Get assigned innovations requested by scaling readiness expert: ', [$user_id]);
+        }
+        else{
+            Log::warning('User is not a scaling readiness expert: ', $sreUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User is not a scaling readiness expert'], 202);
+        }
+
+        $sreEnhanced = new stdClass();
+        $sreEnhanced->sreId = $sreUser->userId;
+        $sreEnhanced->fullName = $sreUser->fullName;
+
+        $assignedSRE = Innovation::where('scalingReadinessExpert', $sreEnhanced)
+            ->where('deleted', false)
+            ->where('status', "UNDER_SR_ASSESSMENT")
+            ->orderBy('version', 'desc')
+            ->get();
+
+        Log::info('Retrieving all innovations assigned for scaling', [$user_id]);
+        if($assignedSRE == null)
+        {
+            return response()->json(["result" => "ok", "innovations" => []], 201);
+        }
+        else{
+            return response()->json(["result" => "ok", "innovations" => $assignedSRE], 201);
+        }
+    }
+
     //Clarisa vocabulary results
     public function getClarisaResults()
     {
@@ -692,7 +735,7 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
         }
         $sreEnhanced = new stdClass();
-        $sreEnhanced->reviewerId = $sreUser->userId;
+        $sreEnhanced->sreId = $sreUser->userId;
         $sreEnhanced->fullName = $sreUser->fullName;
         $innovation = Innovation::where('innovId', $request->innovation_id)
             ->where('deleted', false)
