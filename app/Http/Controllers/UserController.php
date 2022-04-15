@@ -196,6 +196,35 @@ class UserController extends Controller
 
     }
 
+    //Retrieve all the users with "Scaling Readiness Expert" permission     {admin}
+    public function getAllScalingReadinessExperts($user_id)
+    {
+        //Validating the input
+        $validator = Validator::make(["user_id" => $user_id], [
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+        ]);
+        if ($validator->fails()) {
+            Log::error('Resource Validation Failed: ', [$validator->errors(), $user_id]);
+            return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
+        }
+
+        //Check user is admin
+        $adminUser = User::find($user_id);
+        if(in_array("Administrator", $adminUser->permissions))
+        {
+            Log::info('Fetch all requested by administrator: ', [$user_id]);
+        }
+        else{
+            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+        }
+
+        $scalingReadinesExperts = User::where('permissions', "Scaling Readiness Expert")->get();
+        Log::info('Retrieving all Scaling Readiness Expert ');
+        return response()->json(["result" => "ok", "reviewers" => $scalingReadinesExperts], 201);
+
+    }
+
     //Fetch autocomplete suggestions from MEL based on name (10 results max)   {user}
     public function autocompleteUsers(Request $request)
     {
