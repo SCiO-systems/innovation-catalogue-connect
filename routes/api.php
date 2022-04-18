@@ -81,6 +81,7 @@ Route::patch('admin/{user_id}/assignSRE', [InnovationController::class, 'assignS
 //Reviewer calls and routes for innovation data
 Route::get('reviewer/{user_id}/getAssignedInnovations', [InnovationController::class, 'getAssignedInnovations']);
 Route::patch('innovation/{user_id}/addComment', [InnovationController::class, 'addComment']); //maybe change this
+Route::patch('innovation/{innovation_id}/revision', [InnovationController::class, 'requestRevisionInnovation']);
 Route::patch('innovation/{innovation_id}/reject', [InnovationController::class, 'rejectInnovation']);
 Route::patch('innovation/{innovation_id}/approve', [InnovationController::class, 'approveInnovation']);
 Route::patch('innovation/{innovation_id}/publish', [InnovationController::class, 'publishInnovation']);
