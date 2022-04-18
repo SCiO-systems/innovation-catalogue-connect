@@ -391,7 +391,7 @@ class InnovationController extends Controller
 
     }
 
-    //Update an ACCEPTED innovation to a higher version             {user}
+    //Update an PUBLISHED innovation to a higher version             {user}
     public function updateVersionInnovation(Request $request)
     {
         $requestRules = array(
@@ -413,7 +413,7 @@ class InnovationController extends Controller
         //Fetch the requested innovation
         $innovation = Innovation::where('innovId', $request->innovation_id)
             ->where('deleted', false)
-            ->where('status', "ACCEPTED")
+            ->where('status', "PUBLISHED")
             ->where('version', $request->version)
             ->first();
 
@@ -1063,13 +1063,16 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
-
-
         $innovation = Innovation::where('innovId', $innovation_id)
                                 ->where('deleted', false)
                                 ->where(function ($query) {
                                     $query->where('status', "DRAFT")->
-                                            orWhere('status', "READY");
+                                    orWhere('status', "READY")->
+                                    orWhere('status', "REVIEWER_ASSIGNMENT")->
+                                    orWhere('status', "TAKE_FINAL_DECISION")->
+                                    orWhere('status', "REVISIONS_REQUESTED")->
+                                    orWhere('status', "UNDER_REVIEW")->
+                                    orWhere('status', "UNDER_SR_ASSESSMENT");
                                     })
                                 ->first();
 
