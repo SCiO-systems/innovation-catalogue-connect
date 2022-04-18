@@ -114,8 +114,8 @@ class UserController extends Controller
             Log::info('Fetch all requested by administrator: ', [$request->user_id]);
         }
         else{
-            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+            Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges: '], 202);
         }
 
         //Redis
@@ -157,8 +157,8 @@ class UserController extends Controller
             Log::info('Fetch all requested by administrator: ', [$user_id]);
         }
         else{
-            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+            Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges'], 202);
         }
 
         $reviewers = User::where('permissions', "Reviewer")->get();
@@ -186,8 +186,8 @@ class UserController extends Controller
             Log::info('Fetch all requested by administrator: ', [$user_id]);
         }
         else{
-            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+            Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges'], 202);
         }
 
         $scalingReadinesExperts = User::where('permissions', "Scaling Readiness Expert")->get();
@@ -381,8 +381,8 @@ class UserController extends Controller
             Log::info('Update requested by administrator: ', [$request->user_id]);
         }
         else{
-            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+            Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges'], 202);
         }
         $user = User::find($request->target_id);
         $newPermissions = $request->permissions;
@@ -450,10 +450,6 @@ class UserController extends Controller
         $date = date('Y-m-d H:i:s', (int)$timestamp);
         return response()->json(["hardCodedDate" => $hardDate, "date" => $date], 201);
     }
-
-
-
-
 
 
 }

@@ -37,8 +37,8 @@ class InnovationController extends Controller
             Log::info('Fetch all requested by administrator: ', [$user_id]);
         }
         else{
-            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+            Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges'], 202);
         }
 
         $innovations = Innovation::where('deleted', false)->get();
@@ -336,22 +336,6 @@ class InnovationController extends Controller
 
         return response()->json($clarisa_vocabulary, 201);
     }
-
-    //testing function
-    public function  getInnovationsTest($user_id)
-    {
-        //Find the distinct innovations of user_id
-        $innovationsDistinct = Innovation::where('userIds' , $user_id)
-            ->where('deleted', false)
-            ->distinct('innovId')
-            ->get();
-
-
-        Log::info('Retrieving all user distinct innovations ', [$user_id]);
-        return response()->json(["result" => "ok", "innovations" => $innovationsDistinct], 201);
-    }
-
-
 
     /*
     ////POST
@@ -658,8 +642,8 @@ class InnovationController extends Controller
             Log::info('Assign reviewer requested by administrator: ', [$request->user_id]);
         }
         else{
-            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+            Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges'], 202);
         }
 
         //Check users are reviewers and construct the 'reviewers' property
@@ -677,8 +661,8 @@ class InnovationController extends Controller
                 Log::info('Requested user has Reviewer permissions: ', [$request->reviewer_ids]);
             }
             else{
-                Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
-                return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+                Log::warning('User does not have reviewer privileges: ', $reviewUser->permissions);
+                return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer privileges'], 202);
             }
             $reviewerEnhanced = new stdClass();
             $reviewerEnhanced->reviewerId = $reviewUser->userId;
@@ -732,8 +716,8 @@ class InnovationController extends Controller
             Log::info('Assign scaling readiness expert requested by administrator: ', [$request->user_id]);
         }
         else{
-            Log::warning('User does not have administrator rights: ', $adminUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator rights: '], 202);
+            Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges'], 202);
         }
 
         //Check target user is sre and construct the scalingReadinessExpert property
@@ -743,8 +727,8 @@ class InnovationController extends Controller
             Log::info('Requested user has Reviewer permissions: ', [$request->sre_id]);
         }
         else{
-            Log::warning('User does not have reviewer rights: ', $sreUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+            Log::warning('User does not have reviewer privileges: ', $sreUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer privileges'], 202);
         }
         $sreEnhanced = new stdClass();
         $sreEnhanced->sreId = $sreUser->userId;
@@ -794,8 +778,8 @@ class InnovationController extends Controller
             Log::info('Requested user has Reviewer permissions: ', [$request->user_id]);
         }
         else{
-            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+            Log::warning('User does not have reviewer privileges: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer privileges'], 202);
         }
 
         //Fetch the requested innovation
@@ -852,8 +836,8 @@ class InnovationController extends Controller
             Log::info('Requested user has reviewer rights: ', [$request->user_id]);
         }
         else{
-            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+            Log::warning('User does not have reviewer privileges: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer privileges'], 202);
         }
 
         //Fetch the requested innovation
@@ -910,8 +894,8 @@ class InnovationController extends Controller
             Log::info('Requested user has admin rights: ', [$request->user_id]);
         }
         else{
-            Log::warning('User does not have admin rights: ', $checkUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have admin rights: '], 202);
+            Log::warning('User does not have admin privileges: ', $checkUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have admin privileges'], 202);
         }
 
         //Fetch the requested innovation

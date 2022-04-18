@@ -33,8 +33,6 @@ Route::get('/kalhmera', function () {
 //Special calls and routes
 */
 Route::get('morning/head/{timestamp}', [UserController::class, 'morningHead']);         //also for trying things
-Route::get('playaround', [UserController::class, 'playaround']);                        //for trying things
-Route::get('playaround/user/{userId}/getInnovations', [InnovationController::class, 'getInnovationsTest']);
 
 //Clarisa vocabularies
 Route::get('clarisaResults', [InnovationController::class, 'getClarisaResults']);
@@ -49,9 +47,6 @@ Route::post('user/{user_id}/new', [UserController::class, 'insertUser']);
 Route::get('user/{user_id}/exists', [UserController::class, 'existsUser']);
 Route::get('user/{user_id}/data', [UserController::class, 'getUser']);
 Route::patch('user/{user_id}/edit', [UserController::class, 'editUser']);
-
-//Multiple users
-Route::get('admin/{user_id}/users/data', [UserController::class, 'getUsers']);
 
 //Special calls
 Route::post('user/name/autocomplete', [UserController::class, 'autocompleteUsers']);
