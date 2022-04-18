@@ -800,15 +800,16 @@ class InnovationController extends Controller
         }
 
 
+        //TODO: Fix this check
         //Check innovation has been assigned to reviewer with user_id
-        if(in_array($request->user_id, $innovation->reviewerIds))
+        /*if(in_array($request->user_id, $innovation->reviewerIds))
         {
             Log::info('Requested user has been assigned this innovation: ', [$request->user_id]);
         }
         else{
             Log::warning('Requested user has not been assigned this innovation: ', [$request->user_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested user has not been assigned this innovation'], 202);
-        }
+        }*/
 
         //Add comments, log and return response
         $innovation->comments = $request->comments;
@@ -890,8 +891,7 @@ class InnovationController extends Controller
         //Request vallidation
         $requestRules = array(
             'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
-            'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
-            'comments' => 'present|nullable|string',
+            'user_id' => 'required|exists:App\Models\User,userId|string|numeric'
         );
 
         $validator = Validator::make($request->toArray(),$requestRules);
@@ -901,20 +901,20 @@ class InnovationController extends Controller
         }
 
         //Check user is reviewer
-        $reviewUser = User::find($request->user_id);
-        if(in_array("Reviewer", $reviewUser->permissions))
+        $checkUser = User::find($request->user_id);
+        if(in_array("Administrator", $checkUser->permissions))
         {
-            Log::info('Requested user has Reviewer permissions: ', [$request->user_id]);
+            Log::info('Requested user has admin rights: ', [$request->user_id]);
         }
         else{
-            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
+            Log::warning('User does not have admin rights: ', $checkUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have admin rights: '], 202);
         }
 
         //Fetch the requested innovation
         $innovation = Innovation::where('innovId', $request->innovation_id)
             ->where('deleted', false)
-            ->where('status', "UNDER_REVIEW")
+            ->where('status', "TAKE_FINAL_DECISION")
             ->orderBy('version', 'desc')
             ->first();
 
@@ -924,22 +924,11 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
         }
 
-        //Check innovation has been assigned to reviewer with user_id
-        if(in_array($request->user_id, $innovation->reviewerIds))
-        {
-            Log::info('Requested user has been assigned this innovation: ', [$request->user_id]);
-        }
-        else{
-            Log::warning('Requested user has not been assigned this innovation: ', [$request->user_id]);
-            return response()->json(["result" => "failed","errorMessage" => 'Requested user has not been assigned this innovation'], 202);
-        }
-
         //Update innovation, log and return response
-        $innovation->comments = $request->comments;
         $innovation->status = "REJECTED";
         $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
-        Log::info('Rejecting innovation and updating comments ', [$innovation]);
+        Log::info('Rejecting innovation  ', [$innovation]);
         return response()->json(["result" => "ok"], 201);
     }
 
@@ -958,21 +947,13 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => $validator->errors()], 400);
         }
 
-        //Check user is reviewer
-        $reviewUser = User::find($request->user_id);
-        if(in_array("Reviewer", $reviewUser->permissions))
-        {
-            Log::info('Requested user has reviewer rights: ', [$request->user_id]);
-        }
-        else{
-            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have reviewer rights: '], 202);
-        }
-
         //Fetch the requested innovation
         $innovation = Innovation::where('innovId', $request->innovation_id)
             ->where('deleted', false)
-            ->where('status', "UNDER_REVIEW")
+            ->where(function ($query) {
+                $query->where('status', "UNDER_REVIEW")->
+                orWhere('status', "REVISIONS_REQUESTED");
+            })
             ->orderBy('version', 'desc')
             ->first();
 
@@ -980,6 +961,21 @@ class InnovationController extends Controller
         {
             Log::warning('Requested innovation not found', [$request->innovation_id]);
             return response()->json(["result" => "failed","errorMessage" => 'Requested innovation not found'], 202);
+        }
+
+        //Check user is reviewer
+        $reviewUser = User::find($request->user_id);
+        if(in_array($request->user_id, $innovation->userIds))
+        {
+            Log::info('User has author privileges',[$request->user_id]);
+        }
+        elseif (in_array("Reviewer", $reviewUser->permissions))
+        {
+            Log::info('Requested user has reviewer privileges: ', [$request->user_id]);
+        }
+        else{
+            Log::warning('User does not have reviewer rights: ', $reviewUser->permissions);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have required privileges'], 202);
         }
 
         //Construct the reviewer object
