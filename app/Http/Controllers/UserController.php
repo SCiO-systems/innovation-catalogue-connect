@@ -329,7 +329,6 @@ class UserController extends Controller
     //Update user roles         {user}
     public function editUser(Request $request)
     {
-        //TODO: MOOOOOOOAR VALIDATION MOAAAAAAAR (user check etc)
         //Validating the request
         $rules = array(
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',         //ID must be present and existing in the database
@@ -346,8 +345,10 @@ class UserController extends Controller
         //Updating the role
         $user = User::find($request->user_id);
         $user->role = $request->role;
+        $user->website = $request->website;
+        $user->organizationLogo = $request->organization_logo;
         $user->save();
-        Log::info('Updating user role with id: ', [$user->user_id, $user->role]);
+        Log::info('Updating user information with id: ', [$user->user_id, $user->role]);
         return response()->json(["result" => "ok"], 201);
     }
 
