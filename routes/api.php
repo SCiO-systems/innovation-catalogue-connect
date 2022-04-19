@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InnovationController;
 use App\Http\Controllers\RtbController;
+use App\Http\Controllers\OfflinePopulationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,12 +29,15 @@ Route::get('/kalhmera', function () {
     return "az023...";
 });
 
-Route::get('morning/head/{timestamp}', [UserController::class, 'morningHead']); //also for trying things
-Route::get('playaround', [UserController::class, 'playaround']); //for trying things
-Route::get('playaround/user/{userId}/getInnovations', [InnovationController::class, 'getInnovationsTest']);
+/*
+//Special calls and routes
+*/
+Route::get('morning/head/{timestamp}', [UserController::class, 'morningHead']);         //also for trying things
 
+//Clarisa vocabularies
 Route::get('clarisaResults', [InnovationController::class, 'getClarisaResults']);
-
+//Populate Users calls and routes
+Route::post('populateUsers', [OfflinePopulationController::class, 'populateUsers']);
 
 /*
 //User calls and routes
@@ -42,14 +46,16 @@ Route::get('clarisaResults', [InnovationController::class, 'getClarisaResults'])
 Route::post('user/{user_id}/new', [UserController::class, 'insertUser']);
 Route::get('user/{user_id}/exists', [UserController::class, 'existsUser']);
 Route::get('user/{user_id}/data', [UserController::class, 'getUser']);
-Route::patch('user/{user_id}/update/role', [UserController::class, 'updateRoleUser']);
+Route::patch('user/{user_id}/edit', [UserController::class, 'editUser']);
 
-//Multiple users
-Route::get('admin/{user_id}/users/data', [UserController::class, 'getUsers']);
+//Special calls
+Route::post('user/name/autocomplete', [UserController::class, 'autocompleteUsers']);
 
 //Admin calls and routes for user data
 Route::patch('admin/{user_id}/update/permissions', [UserController::class, 'updatePermissionsUser']);
 Route::get('admin/{user_id}/getReviewers', [UserController::class, 'getAllReviewers']);
+Route::get('admin/{user_id}/getSRE', [UserController::class, 'getAllScalingReadinessExperts']);
+Route::post('admin/{user_id}/users/dataPaginated', [UserController::class, 'getUsersPaginated']);
 
 /*
 //Innovation calls and routes
@@ -64,13 +70,19 @@ Route::delete('innovation/{innovation_id}/deleteRejected/user/{user_id}/createdA
 
 //Admin calls and routes for innovation data
 Route::get('admin/{user_id}/getInnovations', [InnovationController::class, 'getAllInnovations']);
-Route::patch('admin/{user_id}/assignReviewer', [InnovationController::class, 'assignReviewer']);
+Route::patch('admin/{user_id}/assignReviewers', [InnovationController::class, 'assignReviewers']);
+Route::patch('admin/{user_id}/assignSRE', [InnovationController::class, 'assignScalingReadinessExpert']);
 
 //Reviewer calls and routes for innovation data
-Route::get('user/{user_id}/getAssignedInnovations', [InnovationController::class, 'getAssignedInnovations']);
-Route::patch('innovation/{user_id}/addComment', [InnovationController::class, 'addComment']);
+Route::get('reviewer/{user_id}/getAssignedInnovations', [InnovationController::class, 'getAssignedInnovations']);
+Route::patch('innovation/{user_id}/addComment', [InnovationController::class, 'addComment']); //maybe change this
+Route::patch('innovation/{innovation_id}/revision', [InnovationController::class, 'requestRevisionInnovation']);
 Route::patch('innovation/{innovation_id}/reject', [InnovationController::class, 'rejectInnovation']);
+Route::patch('innovation/{innovation_id}/approve', [InnovationController::class, 'approveInnovation']);
 Route::patch('innovation/{innovation_id}/publish', [InnovationController::class, 'publishInnovation']);
+
+//SRE calls and routes for innovation data
+Route::get('sre/{user_id}/getAssignedInnovations', [InnovationController::class, 'getSREAssignedInnovations']);
 
 /*
 //RTB Search routes and calls
