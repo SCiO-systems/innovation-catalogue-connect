@@ -488,7 +488,7 @@ class InnovationController extends Controller
             'innovation_id' => 'required|exists:App\Models\Innovation,innovId|string',
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
             'status' => [
-                'required', Rule::in(['DRAFT','READY','UNDER_REVIEW','UNDER_SR_ASSESSMENT']),
+                'required', Rule::in(['DRAFT','READY','REVISIONS_REQUESTED','UNDER_REVIEW','UNDER_SR_ASSESSMENT']),
             ],
         );
         $validator = Validator::make($request->toArray(),$requestRules);
@@ -504,6 +504,7 @@ class InnovationController extends Controller
                 $query->where('status', "DRAFT")->
                 orWhere('status', "READY")->
                 orWhere('status', "UNDER_REVIEW")->
+                orWhere('status', "REVISIONS_REQUESTED")->
                 orWhere('status', "UNDER_SR_ASSESSMENT");
             })
             ->orderBy('version', 'desc')
