@@ -113,6 +113,18 @@ class InnovationController extends Controller
                 $innovations[] = $rejectedInnovations;
             }
 
+            //Take final decision, latest version
+            $finalDecisionInnovations = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "TAKE_FINAL_DECISION")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if($finalDecisionInnovations != null)
+            {
+                $innovations[] = $finalDecisionInnovations;
+            }
+
             //Published, latest version
             $publishedInnovations = Innovation::whereIn('innovId', $singleInnovation)
                 ->where('deleted', false)
@@ -147,6 +159,18 @@ class InnovationController extends Controller
             if($revisionsRequestedInnovations != null)
             {
                 $innovations[] = $revisionsRequestedInnovations;
+            }
+
+            //Under sr assessment , latest version
+            $underAssessmentInnovations = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "UNDER_SR_ASSESSMENT")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if($underAssessmentInnovations != null)
+            {
+                $innovations[] = $underAssessmentInnovations;
             }
 
         }
@@ -245,6 +269,7 @@ class InnovationController extends Controller
     {
         $result = Http::redisFetch();
         $usefulHeaders = array("clarisa_technical_field",
+            "clarisa_organization",
             "clarisa_business_category",
             "clarisa_beneficiaries",
             "clarisa_users",
@@ -256,6 +281,7 @@ class InnovationController extends Controller
             "clarisa_administrative_scale",
             "clarisa_innovation_type",
             "clarisa_countries",
+            "clarisa_innovation_use_levels",
             "clarisa_technology_development_stage"
         );
 
@@ -270,7 +296,7 @@ class InnovationController extends Controller
             $value = array();
             foreach ($vocabToArray[$header] as $fields)
             {
-                if(strcmp($header, "clarisa_administrative_scale") == 0 || strcmp($header, "clarisa_innovation_type") == 0)
+                if(strcmp($header, "clarisa_administrative_scale") == 0 || strcmp($header, "clarisa_innovation_type") == 0 || strcmp($header, "clarisa_organization") == 0)
                 {
                     $valueProperty = array("id" => $fields->code, "value" => $fields->name);
                 }
