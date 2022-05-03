@@ -125,8 +125,8 @@ class UserController extends Controller
             'port'   => env('REDIS_PORT',''),
         ]);
 
-        $userCount = $client->zcount('mel_users_innovation', -INF, +INF);
-        $resultRedis = $client->zrange('mel_users_innovation', $request->offset, $request->limit);
+        $userCount = $client->zcount(env('REDIS_USERS_KEY',''), -INF, +INF);
+        $resultRedis = $client->zrange(env('REDIS_USERS_KEY',''), $request->offset, $request->limit);
         $usersFromRedis = array();
         foreach($resultRedis as $singleUser)
         {
@@ -313,7 +313,7 @@ class UserController extends Controller
         $redisUser = array("user_id" => $user->userId, "permissions" => $user->permissions,"name" => $user->fullName);
         //Αdd to Redis
         $redisUser = json_encode($redisUser);
-        $resultAdd = $client->zadd('mel_users_innovation', [$redisUser =>  $score]);
+        $resultAdd = $client->zadd(env('REDIS_USERS_KEY',''), [$redisUser =>  $score]);
         if($resultAdd == 0)
         {
             Log::error('New user not added to Redis, already exists', [$redisUser]);
@@ -418,14 +418,14 @@ class UserController extends Controller
         //Prepare redis data
         $score = unpack('I*', $user->fullName)[1];
         $redisUser = array("user_id" => $user->userId, "permissions" => $user->permissions,"name" => $user->fullName);
-        $deleteResult = $client->zRemRangeByScore('mel_users_innovation', $score, $score);
+        $deleteResult = $client->zRemRangeByScore(env('REDIS_USERS_KEY',''), $score, $score);
         if($deleteResult == 0)
         {
             return response('I didnt delete a thing');
         }
         //Αdd to Redis
         $redisUser = json_encode($redisUser);
-        $resultAdd = $client->zadd('mel_users_innovation', [$redisUser =>  $score]);
+        $resultAdd = $client->zadd(env('REDIS_USERS_KEY',''), [$redisUser =>  $score]);
         if($resultAdd == 0)
         {
             Log::info('Mel user not added to redis, already exists', [$redisUser]);
