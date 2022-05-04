@@ -1,12 +1,14 @@
 <?php
 
 
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\InnovationController;
 use App\Http\Controllers\RtbController;
 use App\Http\Controllers\OfflinePopulationController;
+use App\Http\Controllers\ClarisaVocabulariesController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,7 +37,8 @@ Route::get('/kalhmera', function () {
 Route::get('morning/head/{timestamp}', [UserController::class, 'morningHead']);         //also for trying things
 
 //Clarisa vocabularies
-Route::get('clarisaResults', [InnovationController::class, 'getClarisaResults']);
+Route::get('clarisaResults', [ClarisaVocabulariesController::class, 'getClarisaResults']);
+Route::post('autocompleteOrganization', [ClarisaVocabulariesController::class, 'autocompleteOrganization']);
 //Populate Users calls and routes
 Route::post('populateUsers', [OfflinePopulationController::class, 'populateUsers']);
 

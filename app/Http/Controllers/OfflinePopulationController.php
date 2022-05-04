@@ -12,6 +12,8 @@ class OfflinePopulationController extends Controller
 {
     public function populateUsers()
     {
+
+        ini_set('max_execution_time', 1500);
         //Redis
         $client = new PredisClient([
             'scheme' => 'tcp',
@@ -65,9 +67,9 @@ class OfflinePopulationController extends Controller
         Log::info("Records filtered ", [$userDataResponse["filtered_records"]]);
 
         $allUserDataFinal = $userDataResponse["data"];
-        //$recordsExpected = $userDataResponse["filtered_records"];
+        $recordsExpected = $userDataResponse["filtered_records"];
         //Solution for now, just do it for records filtered = 50
-        $recordsExpected = 50;
+        //$recordsExpected = 50;
         //Construct the scrollId
         //$scrollId = substr($userDataResponse["_scroll_id"], 0, -2);
         //$scrollId = "&scroll_id=".$scrollId."%3D%3D";
@@ -75,12 +77,11 @@ class OfflinePopulationController extends Controller
         Log::info("Scroll_id constructed" , [$scrollId]);
         while ($recordsExpected > 10)
         {
-            Log::info("ANOTHER 10 BOYYYY", [$recordsExpected]);
+            //Log::info("ANOTHER 10 BOYYYY", [$recordsExpected]);
 
             $userDataResponse = Http::withHeaders(["Authorization" =>env('MEL_API_KEY','')])
                 ->post(env('MEL_SEARCH_USERS','').$scrollId, $properBody);
             $userDataResponse = json_decode($userDataResponse, true);
-            Log::info("CHECK THIS OUT BROCOLOCO", $userDataResponse);
             $allUserDataFinal = array_merge($allUserDataFinal, $userDataResponse["data"]);
             //$scrollId = substr($userDataResponse["_scroll_id"], 0, -2);
             //$scrollId = "&scroll_id=".$scrollId."%3D%3D";
@@ -133,20 +134,6 @@ class OfflinePopulationController extends Controller
             }
         }
 
-        /////////////////////////////////////
-        //Temporary fix, add specific profiles
-        $score = unpack('I*', "George Gkoumas")[1];
-        $testUser = array("user_id" => "25120", "permissions" => ["User", "Reviewer", "Administrator"],"name" => "George Gkoumas");
-        $testUser = json_encode($testUser);
-        $resultAdd = $client->zadd(env('REDIS_USERS_KEY',''), [$testUser =>  $score]);
-
-        /*
-        $score = unpack('I*', "Quang Bao Le")[1];
-        $testUser = array("user_id" => "102", "permissions" => ["User", "Reviewer", "Administrator"],"name" => "Quang Bao Le");
-        $testUser = json_encode($testUser);
-        $resultAdd = $client->zadd('mel_users_innovation', [$testUser =>  $score]);*/
-        ////////////////////////////////////
-
         $resultRedis = $client->zrange(env('REDIS_USERS_KEY',''), 0, -1);
         $usersFromRedis = array();
         foreach($resultRedis as $singleUser)
@@ -156,45 +143,5 @@ class OfflinePopulationController extends Controller
 
         Log::info("Databases populated");
         return response()->json(["result" => "ok", "key_used" => env('REDIS_USERS_KEY',''), "users" => $usersFromRedis], 201);
-    }
-
-    public function populateVocabularies()
-    {
-        ini_set('max_execution_time', 400);
-        //Redis
-        $client = new PredisClient([
-            'scheme' => 'tcp',
-            'host' => env('REDIS_HOST', ''),
-            'port' => env('REDIS_PORT', ''),
-        ]);
-
-        $allKeys = $client->keys('*');
-
-        $deleteResult = $client->del('clarisa_vocab_organization');
-        if($deleteResult == 0)
-        {
-            return response('I didnt delete a thing');
-        }
-
-        Log::info("I REACHED THIS POINT YEEE BOIII");
-        $result = Http::redisFetch();
-        $vocabToArray = (array)$result;
-        $organizations = array();
-        foreach ($vocabToArray["clarisa_organization"] as $fields)
-        {
-            $valueProperty = array("id" => $fields->code, "value" => $fields->name);
-            //array_push($organizations, $valueProperty);
-            $valueProperty = json_encode($valueProperty);
-            $resultAdd = $client->zadd('clarisa_vocab_organization', [$valueProperty =>  (int)$fields->code]);
-            Log::info("I AM ADDING", [$fields->code]);
-            if($resultAdd == 0)
-            {
-                Log::info('Element not added to redis, already exists', [$valueProperty]);
-            }
-        }
-        //$vocabToArray = json_encode($vocabToArray);
-        $resultRedis = $client->zrange('clarisa_vocab_organization', 0, -1);
-        Log::info("I REACHED THIS ABOUT TO RETURN");
-        return response()->json(["result" => "ok", "organizations" => $resultRedis], 200);
     }
 }

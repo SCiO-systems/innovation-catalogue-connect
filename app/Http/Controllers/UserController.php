@@ -349,7 +349,7 @@ class UserController extends Controller
         $user->organizationLogo = $request->organization_logo;
         $user->save();
         Log::info('Updating user information with id: ', [$user->user_id, $user->role]);
-        return response()->json(["result" => "ok"], 201);
+        return response()->json(["result" => "ok", "user" => $user], 201);
     }
 
     //Update user permissions      {admin}
