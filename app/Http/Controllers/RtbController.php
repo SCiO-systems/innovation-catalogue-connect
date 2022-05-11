@@ -13,8 +13,15 @@ class RtbController extends Controller
 
     public function rtb_search(Request $request)
     {
-        $requestType = 'POST';
-        $urlString = '/api/v2/search/rtb/innovations';
+        if(env('APP_STATE', '') == 'dev')
+        {
+            $urlString = '/api/v2/search/dev/rtb/innovations';
+        }
+        else
+        {
+            $urlString = '/api/v2/search/rtb/innovations';
+        }
+
         $header = ['Content-Type: application/json'];
         $body = $request->getContent();
         $response = Http::withHeaders($header)->withBody($body, 'json')->post(env('INNOVATION_ES','').$urlString);
@@ -128,7 +135,14 @@ class RtbController extends Controller
 
     public function rtb_retrieve_document(Request $request)
     {
-        $url = '/api/v1/search/retrivebyid';
+        if(env('APP_STATE', '') == 'dev')
+        {
+            $urlString = '/api/v1/search/dev/retrivebyid';
+        }
+        else
+        {
+            $urlString = '/api/v1/search/retrivebyid';
+        }
         $header = ['Content-Type: application/json'];
         $body = $request->getContent();
         $requiredBodyData = [
@@ -136,7 +150,7 @@ class RtbController extends Controller
             'alias' => 'required|String',
         ];
 
-        $response = Http::withHeaders($header)->withBody($body, 'json')->post(env('INNOVATION_ES','').$url);
+        $response = Http::withHeaders($header)->withBody($body, 'json')->post(env('INNOVATION_ES','').$urlString);
 
         $json = json_decode($response);
 
@@ -360,8 +374,15 @@ class RtbController extends Controller
 
     public function rtb_retrievedocument_by_title(Request $request)
     {
+        if(env('APP_STATE', '') == 'dev')
+        {
+            $urlString = '/api/v1/search/dev/retrievebytitle';
+        }
+        else
+        {
+            $urlString = '/api/v1/search/retrievebytitle';
+        }
         $requestType = 'POST';
-        $urlString = '/api/v1/search/retrievebytitle';
         $header = ['Content-Type: application/json'];
         $requiredBodyData = [
             'title' => 'required|String',
