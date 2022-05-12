@@ -25,7 +25,11 @@ pipeline {
                 echo 'Building project'
 
                 script {
-                    sh "cp /envs/laravel/${project_name}/${stage_tag}.env .env"
+//                    sh "cp /envs/laravel/${project_name}/${stage_tag}.env .env"
+                    echo 'Downloading from S3 bucket'
+                    withAWS(region: 'us-east-2', credentials:'jenkins-aws') {
+                        s3Download(file: '.env', bucket: 'scio-project-envs', path: "laravel/${project_name}/${stage_tag}.env", force:true)
+                    }
 
                     docker.withRegistry('https://index.docker.io/v1/', 'DockerHub') {
                         docker.build("sciohub/${project_name}:${stage_tag}", '.').push()
