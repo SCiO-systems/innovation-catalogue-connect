@@ -1,7 +1,7 @@
 <?php
 
 
-
+use App\Http\Controllers\ElasticPopulationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -41,6 +41,10 @@ Route::get('clarisaResults', [ClarisaVocabulariesController::class, 'getClarisaR
 Route::post('autocompleteOrganization', [ClarisaVocabulariesController::class, 'autocompleteOrganization']);
 //Populate Users calls and routes
 Route::post('populateUsers', [OfflinePopulationController::class, 'populateUsers']);
+//Get all published innovations
+Route::get('allPublishedInnovations', [InnovationController::class, 'getAllPublishedInnovations']);
+//Elastic calls
+Route::post('innovation/{innovation_id}/publishedToElastic', [ElasticPopulationController::class, 'publishToElastic']);
 
 /*
 //User calls and routes
