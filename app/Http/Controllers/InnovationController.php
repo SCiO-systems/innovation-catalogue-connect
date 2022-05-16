@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Innovation;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -262,6 +261,42 @@ class InnovationController extends Controller
         else{
             return response()->json(["result" => "ok", "innovations" => $assignedSRE], 201);
         }
+    }
+
+    function getAllPublishedInnovations()
+    {
+
+        //Find the distinct innovations of user_id
+        $innovationsDistinct = Innovation::where('deleted', false)
+            ->distinct('innovId')
+            ->get();
+
+        $innovationsWithNames= array();
+        foreach($innovationsDistinct as $singleInnovation) {
+            //Published, latest version
+            $publishedInnovation = Innovation::whereIn('innovId', $singleInnovation)
+                ->where('deleted', false)
+                ->where('status', "PUBLISHED")
+                ->orderBy('version', 'desc')
+                ->first();
+
+            if ($publishedInnovation != null) {
+                //$innovations[] = $publishedInnovations;
+                $innovationEnhanced = new stdClass();
+                $innovationEnhanced->innovation_id = $publishedInnovation->innovId;
+                //$innovationEnhanced->name = $publishedInnovation->formData;
+                foreach($publishedInnovation->formData as $singleField)
+                {
+                    if($singleField["id"] == "1.1")
+                    {
+                        $innovationEnhanced->name = $singleField["value"];
+                    }
+                }
+                array_push($innovationsWithNames, $innovationEnhanced);
+            }
+        }
+
+        return response()->json(["result" => "ok", "innovations" => $innovationsWithNames], 201);
     }
 
 
