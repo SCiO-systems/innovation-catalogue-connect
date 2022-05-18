@@ -1001,12 +1001,13 @@ class InnovationController extends Controller
             return response()->json(["result" => "failed","errorMessage" => 'User does not have required privileges'], 202);
         }
 
-        //Update innovation, log and return response
+        //Update innovation, log and reroute to elasticsearch publication
         $innovation->status = "PUBLISHED";
         $innovation->updatedAt = round(microtime(true) * 1000);
         $innovation->save();
-        Log::info('Publishing innovation', [$innovation]);
-        return response()->json(["result" => "ok"], 201);
+        Log::info('Publishing innovation, will also add it to elastic', [$innovation]);
+        return redirect()->route('elasticSearchPublish', [ 'innovation_id' => $request->innovation_id]);
+        //return response()->json(["result" => "ok"], 201);
     }
 
 
