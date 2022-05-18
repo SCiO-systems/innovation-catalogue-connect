@@ -1,7 +1,7 @@
 <?php
 
 
-use App\Http\Controllers\ElasticPopulationController;
+use App\Http\Controllers\WorkflowNotificationsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -9,6 +9,7 @@ use App\Http\Controllers\InnovationController;
 use App\Http\Controllers\RtbController;
 use App\Http\Controllers\OfflinePopulationController;
 use App\Http\Controllers\ClarisaVocabulariesController;
+use App\Http\Controllers\ElasticPopulationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,7 +45,10 @@ Route::post('populateUsers', [OfflinePopulationController::class, 'populateUsers
 //Get all published innovations
 Route::get('allPublishedInnovations', [InnovationController::class, 'getAllPublishedInnovations']);
 //Elastic calls
-Route::post('innovation/{innovation_id}/publishedToElastic', [ElasticPopulationController::class, 'publishToElastic']);
+//Get is used here by exception, rerouted through publishInnovation
+Route::get('innovation/{innovation_id}/publishedToElastic', [ElasticPopulationController::class, 'publishToElastic'])->name('elasticSearchPublish');
+//Approval Notification calls and routes
+Route::get('workflowNotification', [WorkflowNotificationsController::class, 'sendNotificationEmail'])->name('notifyUser');
 
 /*
 //User calls and routes
