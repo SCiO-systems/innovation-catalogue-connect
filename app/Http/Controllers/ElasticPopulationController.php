@@ -10,6 +10,7 @@ use Elastic\Elasticsearch\Response\Elasticsearch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Psr7;
+use stdClass;
 
 class ElasticPopulationController extends Controller
 {
@@ -36,7 +37,7 @@ class ElasticPopulationController extends Controller
             "2.9" => "environmental_benefits",
             "3.1" => "locations_of_implementation",                     //Missing 3.2 & 3.3 requires transformation
             "3.4" => "applied_evidence_locations",
-            "3.5" => "impact_evidence_solutions",
+            "3.5" => "impact_evidence_locations",
             "4.2" => "technology_appraisal",                            //Missing 4.1 & 4.3 requires heavy transformation
             "4.4" => "documentation",
             "5.1" => "patent_member_type",                              //Missing 5.4 requires transformation
@@ -53,14 +54,14 @@ class ElasticPopulationController extends Controller
             "8.2" => "technology_dev_project_summary",
             "8.3" => "innovation_readiness_levels_of_component",
             "8.4" => "innovation_use_levels_of_components",
-            "8.5" => "scaling_readiness_leve",
+            "8.5" => "scaling_readiness_level",
             "8.6" => "scaling_readiness_score",
             "9.1" => "innovation_users",                                //Missing 9.4 & 9.5 & 9.6
             "9.2" => "innovation_beneficiaries",
             "9.3" => "innovation_sponsors");
 
 
-        $specialCaseMappingIndex = array("1.7" => "innovation_image",   //Missing 6.1, splits in 2 fields
+        $specialCaseMappingIndex = array("1.7" => "innovation_image",   //6.1, splits in 2 fields
             "1.8" => "innovation_image_component",
             "1.13" => "uuids_of_related_innovations",
             "2.6" => "SDG_targets",
@@ -79,7 +80,7 @@ class ElasticPopulationController extends Controller
 
         //Elasticsearch client
         $client = ClientBuilder::create()
-            ->setHosts(['dev.elasticsearch.scio.services:9200'])
+            ->setHosts([env('INNOVATIONS_RTB_ES','')])
             ->build();
 
 
@@ -180,7 +181,7 @@ class ElasticPopulationController extends Controller
                     case "3.3":
                         //String with the complete date, only need the year
                         $explodedDate = explode(" ",$singleField["value"]);
-                        $elasticField = [$specialCaseMappingIndex[$indexingKey] => $explodedDate[3]];
+                        $elasticField = [$specialCaseMappingIndex[$indexingKey] => [$explodedDate[3]]];
                         $elasticDocument = array_merge($elasticDocument, $elasticField);
                         break;
                     case "4.1":
@@ -346,7 +347,6 @@ class ElasticPopulationController extends Controller
         //region
         $elasticResponses = array();
         foreach ($elasticDocument["locations_of_implementation"] as $singleLocation){
-            Log::info("CHECK THIS BOIIIII", [$singleLocation]);
             $params = [
                 'index' => 'dev_db_clarisa_countries',
                 'body'  => [
@@ -377,7 +377,6 @@ class ElasticPopulationController extends Controller
         //impact_areas
         $elasticResponses = array();
         foreach ($elasticDocument["CGIAR_impact_targets"] as $singleImpact){
-            Log::info("CHECK THIS BOIIIII", [$singleImpact]);
             $params = [
                 'index' => 'dev_db_clarisa_impact_areas',
                 'body'  => [
@@ -444,8 +443,380 @@ class ElasticPopulationController extends Controller
         ];
         $response = $client->index($params);
 
-
         return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument ,"response" => $response->asObject()], 200);
+
+    }
+
+    public function migrateToMongo()
+    {
+
+        //TODO: This is a note, all fields valid:true
+        ini_set('max_execution_time', 1500);
+
+        //Fields that follow the standard case, copying the value
+        $mapping_index = array("1.1" => ["innovation_common_name", "true"],       //Missing 1.7 & 1.8 1.13, requires transformation
+            "1.2" => ["long_innovation_description", "true"],
+            "1.3" => ["business_category", "true"],
+            "1.4" => ["administrative_scale_of_innovations", "true"],
+            "1.5" => ["related_keywords", "true"],
+            "1.6" => ["innovation_url", "true"],
+            "1.9" => ["technical_fields", "true"],
+            "1.10" => ["innovation_type_old", "false"],
+            "1.11" => ["innovation_type_new", "true"],
+            "1.12" => ["gov_type_of_solution", "true"],
+            "2.1" => ["CGIAR_action_areas_name", "true"],                         //Extra SDG fields that require population. Missing 2.6 & 2.7 require transformation
+            "2.2" => ["value_added", "true"],
+            "2.3" => ["main_advantages", "true"],
+            "2.4" => ["main_disadvantages", "true"],
+            "2.5" => ["problem_to_be_solved", "true"],
+            "2.8" => ["initiative_defined_outcome", "true"],
+            "2.9" => ["environmental_benefits", "true"],
+            "3.1" => ["locations_of_implementation", "true"],                     //Missing 3.2 & 3.3 requires transformation
+            "3.4" => ["applied_evidence_locations", "false"],
+            "3.5" => ["impact_evidence_locations", "false"],
+            "4.2" => ["technology_appraisal", "false"],                            //Missing 4.1 & 4.3 requires heavy transformation
+            "4.4" => ["documentation", "false"],
+            "5.1" => ["patent_member_type", "false"],                              //Missing 5.4 requires transformation
+            "5.2" => ["patent_number", "false"],
+            "5.3" => ["patent_office", "false"],
+            "6.2" => ["intervention_total_budget", "false"],                       //Missing 6.1 & 6.3 requires transformation
+            "6.4" => ["challenge_statement", "false"],
+            "6.5" => ["objective_statement", "false"],
+            "6.6" => ["long_intervention_description", "false"],
+            "7.1" => ["technology_dev_project_summary", "false"],
+            "7.2" => ["investment_sought_type", "false"],
+            "7.3" => ["investment_sought", "false"],
+            "8.1" => ["technology_dev_stage", "false"],
+            "8.2" => ["technology_dev_project_summary", "false"],
+            "8.3" => ["innovation_readiness_levels_of_component", "false"],
+            "8.4" => ["innovation_use_levels_of_components", "false"],
+            "8.5" => ["scaling_readiness_level", "false"],
+            "8.6" => ["scaling_readiness_score", "false"],
+            "9.1" => ["innovation_users", "false"],                                //Missing 9.4 & 9.5 & 9.6
+            "9.2" => ["innovation_beneficiaries", "false"],
+            "9.3" => ["innovation_sponsors", "true"]);
+
+        $specialCaseMappingIndex = array("1.7" => ["innovation_image", "false"],   //Missing 6.1, splits in 2 fields
+            "1.8" => ["innovation_image_component", "false"],
+            "1.13" => ["mel_ids_of_related_innovations", "true"],
+            "2.6" => ["sdg_target_ui", "false"],
+            "2.7" => ["impact_areas", "false"],
+            "3.2" => ["work_start_date", "false"],
+            "3.3" => ["work_end_date", "false"],
+            "4.1" => ["innovation_reference_materials", "false"],
+            "4.3" => ["technology_appraisal_image", "false"],
+            "5.4" => ["patent_know_how_info", "false"],
+            "6.1" => ["intervention_full_name", "false"],
+            "6.3" => ["intervention_team_members", "false"],
+            "9.4" => ["key_innovation_partners", "true"],
+            "9.5" => ["key_demand_partners", "false"],
+            "9.6" => ["key_scaling_partners", "true"]);
+
+        //Elasticsearch client
+        $client = ClientBuilder::create()
+            ->setHosts([env('INNOVATIONS_RTB_ES','')])
+            ->build();
+
+        $params = [
+            'index' => 'rtb_innovations',
+            'body'  => [
+                "query" => [
+                    "match_all" => new StdClass
+                ],
+                "size" => 100
+            ]
+        ];
+
+        //Get all the elastic docos
+        $response = $client->search($params);
+        //Mongo Migration for each one
+
+        foreach ($response->asObject()->hits->hits as $singleElasticDoco)
+        {
+            $elasticInnovationData = $singleElasticDoco->_source;
+            $formData = array();
+            foreach ($mapping_index as $key => $data)
+            {
+                $fieldName = $data[0];
+                $formField = ["id" => $key, "value"=> $elasticInnovationData->$fieldName, "mandatory" => $data[1], "valid" => "true"];
+                array_push($formData, $formField);
+            }
+
+
+            $formDataSpecial = array();
+            foreach ($specialCaseMappingIndex as $key => $data)
+            {
+                switch ($key)
+                {
+                    case "1.7":
+                        $fieldName = $data[0];
+                        $transformedValue = ["type" => "image", "title" => "", "name" => $elasticInnovationData->$fieldName];
+                        $formField = ["id" => $key, "value"=> [$transformedValue], "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "1.8":
+                        $fieldName = $data[0];
+                        $explodedImages = explode(" ;; ",$elasticInnovationData->$fieldName);
+                        $imageObjectsArray = array();
+                        foreach ($explodedImages as $singleImage)
+                        {
+                            $transformedValue = ["type" => "image", "title" => "", "name" => $singleImage];
+                            array_push($imageObjectsArray, $transformedValue);
+                        }
+                        $formField = ["id" => $key, "value"=> $imageObjectsArray, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "1.13":
+                        $fieldName = $data[0];
+                        $relatedInnovationArray = array();
+                        foreach ($elasticInnovationData->$fieldName as $single_mel_id)
+                        {
+                            if($single_mel_id != null || empty($single_mel_id) == 0){
+                                //Get innovation from elastic based on mel id
+                                $params = [
+                                    'index' => 'rtb_innovations',
+                                    'body'  => [
+                                        "query" => [
+                                            "match" => [
+                                                "mel_id_single" => $single_mel_id
+                                            ]
+                                        ]
+                                    ]
+                                ];
+                                Log::info("I GOT THIS FAR", [$single_mel_id]);
+                                $singleInnovation = $client->search($params);
+                                $usefulData = $singleInnovation->asObject()->hits->hits[0]->_source;
+                                $uuid = $usefulData->innovation_uuid;
+                                $transformedUUID = "INNOV-".substr($uuid, 0, 8)."-".substr($uuid, 8, 4)."-".substr($uuid, 12, 4)."-".substr($uuid, 16, 4)."-".substr($uuid, 20, 12);
+                                $transformedValue = ["innovation_id" => $transformedUUID, "name" => $usefulData->innovation_common_name];
+                                array_push($relatedInnovationArray, $transformedValue);
+                            }
+
+                        }
+                        $formField = ["id" => $key, "value"=> $relatedInnovationArray, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "2.6":
+                        $fieldName = $data[0];
+                        $targetsArray = array();
+                        foreach ($elasticInnovationData->$fieldName as $singleSdgTarget)
+                        {
+                            if(array_key_exists($singleSdgTarget->sdg_full_name, $targetsArray))
+                            {
+                                $newTarget = $targetsArray[$singleSdgTarget->sdg_full_name];
+                                array_push($newTarget, ["id" => uniqid('', true), "value" =>$singleSdgTarget->sdg_target_code." - ".$singleSdgTarget->sdg_target]);
+                                $targetsArray[$singleSdgTarget->sdg_full_name] = $newTarget;
+                            }
+                            else{
+                                $targetsArray[$singleSdgTarget->sdg_full_name] = [["id" => uniqid('', true), "value" =>$singleSdgTarget->sdg_target_code." - ".$singleSdgTarget->sdg_target]];
+                            }
+                        }
+                        $transformedValue = array();
+                        foreach ($targetsArray as $sdgKey => $item)
+                        {
+                            array_push($transformedValue, ["id" => uniqid('', true), "value" => $item, "title" => $sdgKey]);
+                        }
+                        $formField = ["id" => $key, "value"=> $transformedValue, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "2.7":
+                        $fieldName = $data[0];
+                        $count = 0;
+                        $targetsArray = array();
+                        foreach ($elasticInnovationData->$fieldName as $impactTitle)
+                        {
+                            if($impactTitle != null || empty($impactTitle) == 0)
+                            {
+                                $targetValue = $elasticInnovationData->CGIAR_impact_targets[$count];
+                                if(array_key_exists($impactTitle, $targetsArray))
+                                {
+                                    $newTarget = $targetsArray[$impactTitle];
+                                    array_push($newTarget, ["id" => uniqid('', true), "value" => $targetValue]);
+                                    $targetsArray[$impactTitle] = $newTarget;
+                                }
+                                else{
+                                    $targetsArray[$impactTitle] = [["id" => uniqid('', true), "value" => $targetValue]];
+                                }
+                            }
+                            $count++;
+                        }
+                        $transformedValue = array();
+                        foreach ($targetsArray as $impactKey => $item)
+                        {
+                            array_push($transformedValue, ["id" => uniqid('', true), "value" => $item, "title" => $impactKey]);
+                        }
+                        $formField = ["id" => $key, "value"=> $transformedValue, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "3.2":
+                    case "3.3":
+                        //Cast date to string
+                        $fieldName = $data[0];
+                        $formField = ["id" => $key, "value"=> (string)($elasticInnovationData->$fieldName[0]), "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "4.1":
+                        $fieldName = $data[0];
+                        $referencesArray = array();
+                        foreach ($elasticInnovationData->$fieldName as $singleReference)
+                        {
+                            $explodedReferences = explode("##",$singleReference);
+                            Log::info("these are the exploded elements", $explodedReferences);
+                            if(sizeof($explodedReferences, 0) == 1)
+                            {
+                                $referenceType = "other";
+                                $resource = "";
+                            }
+                            else
+                            {
+                                if (str_contains($explodedReferences[1], ".jpeg") || str_contains($explodedReferences[1], ".png"))
+                                {
+                                    $referenceType = "image";
+                                }
+                                elseif (str_contains($explodedReferences[1], "http"))
+                                {
+                                    $referenceType = "url";
+                                }
+                                else{
+                                    $referenceType = "file";
+                                }
+                                $resource = $explodedReferences[1];
+                            }
+                            $transformedValue = ["type" => $referenceType, "title" => $explodedReferences[0], "name" => $resource];
+                            array_push($referencesArray, $transformedValue);
+                        }
+                        $formField = ["id" => $key, "value"=> $referencesArray, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "4.3":
+                        //Need to construct an object
+                        $fieldName = $data[0];
+                        $transformedValue = ["type" => "image", "title" => "", "name" => $elasticInnovationData->$fieldName];
+                        $formField = ["id" => $key, "value"=> $transformedValue, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "5.4":
+                        $fieldName = $data[0];
+                        $patentValue = $elasticInnovationData->$fieldName;
+                        if($patentValue != null || empty($patentValue) == 0)
+                        {
+                            if (str_contains($patentValue, ".jpeg") || str_contains($patentValue, ".png"))
+                            {
+                                $referenceType = "image";
+                            }
+                            elseif (str_contains($patentValue, "http"))
+                            {
+                                $referenceType = "url";
+                            }
+                            else{
+                                $referenceType = "file";
+                            }
+                            $transformedValue = ["type" => $referenceType, "title" => "", "name" => $patentValue];
+                        }
+                        else{
+                            $transformedValue = array();
+                        }
+                        $formField = ["id" => $key, "value"=> $transformedValue, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "6.1":
+                        $fieldName = $data[0];
+                        $acronymsArray = array();
+                        foreach ($elasticInnovationData->$fieldName as $interventionFull)
+                        {
+                            if($interventionFull != null || empty($interventionFull) == 0)
+                            {
+                                $explodedNames = explode("(", $interventionFull);
+                                $interventionName = $explodedNames[0];
+                                $explodedNames = explode(")", $explodedNames[1]);
+                                $interventionAcronym = $explodedNames[0];
+                                $transformedValue = ["id" => uniqid('', true), "value" => [$interventionAcronym, $interventionName]];
+                                array_push($acronymsArray, $transformedValue);
+                            }
+                        }
+                        $formField = ["id" => $key, "value"=> $acronymsArray, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "6.3":
+                        $fieldName = $data[0];
+                        $usersArray = array();
+                        foreach($elasticInnovationData->$fieldName as $singleMember)
+                        {
+                            $transformedValue = ["id" => uniqid('', true), "value" => [["name" => $singleMember, "photo" => ""]]];
+                            array_push($usersArray, $transformedValue);
+                        }
+                        $formField = ["id" => $key, "value"=> $usersArray, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    case "9.4":
+                    case "9.5":
+                    case "9.6":
+                        $fieldName = $data[0];
+                        $keysArray = array();
+                        foreach($elasticInnovationData->$fieldName as $singleKey)
+                        {
+                            if($singleKey != null || empty($singleKey) == 0)
+                            {
+                                $transformedValue = ["id" => uniqid('', true), "value" => $singleKey];
+                                array_push($keysArray, $transformedValue);
+                            }
+                        }
+                        $formField = ["id" => $key, "value"=> $keysArray, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formData, $formField);
+                        break;
+                    default:
+                        $fieldName = $data[0];
+                        $formField = ["id" => $key, "value"=> $elasticInnovationData->$fieldName, "mandatory" => $data[1], "valid" => "true"];
+                        array_push($formDataSpecial, $formField);
+                        break;
+                }
+            }
+
+            $innovation = new Innovation;
+            //Innovation data, mongo metadata
+            //innovId , "innovation_uuid"
+            $uuid = $elasticInnovationData->innovation_uuid;
+            $transformedUUID = "INNOV-".substr($uuid, 0, 8)."-".substr($uuid, 8, 4)."-".substr($uuid, 12, 4)."-".substr($uuid, 16, 4)."-".substr($uuid, 20, 12);
+            $innovation->innovId = $transformedUUID;
+            //userIds, user_id
+            $transformedIdsArray = array();
+            foreach ($elasticInnovationData->user_id as $singleId)
+            {
+                array_push($transformedIdsArray, (string)$singleId);
+            }
+            $innovation->userIds = $transformedIdsArray;
+            //status
+            $innovation->status = "PUBLISHED";
+            //version
+            $innovation->version = 1;
+            //HDL
+            $innovation->persistId = [$elasticInnovationData->HDL];
+            //deleted
+            $innovation->deleted = false;
+            //reviewers
+            $innovation->reviewers = [];
+            //scalingReadinessExpert
+            $innovation->scalingReadinessExpert = [];
+            //comments
+            $innovation->comments = "";
+            $currentTime = round(microtime(true) * 1000);
+            //createdAt
+            $innovation->createdAt = $currentTime;
+            //updatedAt
+            $innovation->updatedAt = $currentTime;
+            //assignedAt
+            $innovation->assignedAt = "";
+            $innovation->formData = $formData;
+
+            //Save innovation and Log
+            $innovation->save();
+            Log::info('Adding new innovation with id: ', [$innovation->innovId]);
+
+        }
+
+
+
+        return response()->json(["result" => "ok"], 200);
 
     }
 }
