@@ -47,8 +47,10 @@ Route::get('allPublishedInnovations', [InnovationController::class, 'getAllPubli
 //Elastic calls
 //Get is used here by exception, rerouted through publishInnovation
 Route::get('innovation/{innovation_id}/publishedToElastic', [ElasticPopulationController::class, 'publishToElastic'])->name('elasticSearchPublish');
+Route::get('elasticMigration', [ElasticPopulationController::class, 'migrateToMongo']);
 //Approval Notification calls and routes
-Route::get('workflowNotification', [WorkflowNotificationsController::class, 'sendNotificationEmail'])->name('notifyUser');
+Route::get('workflowNotification/{innovation_id}/{workflow_state}/{user_id}/{title}', [WorkflowNotificationsController::class, 'sendNotificationEmail'])->name('notifyUser');
+
 
 /*
 //User calls and routes
