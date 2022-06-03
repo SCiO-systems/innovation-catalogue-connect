@@ -442,8 +442,11 @@ class ElasticPopulationController extends Controller
             'body'  => $elasticDocument
         ];
         $response = $client->index($params);
+        Log::info("Innovation published to elasticsearch", [$response]);
 
-        return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument ,"response" => $response->asObject()], 200);
+        return redirect()->route('notifyUser', [ 'innovation_id' => $innovation_id, 'workflow_state' => 7, 'user_id' => $user["userId"], 'title' => $elasticDocument["innovation_common_name"]]);
+
+        //return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument ,"response" => $response->asObject()], 200);
 
     }
 
