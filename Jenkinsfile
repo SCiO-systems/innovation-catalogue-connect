@@ -2,7 +2,7 @@ def subject = "${env.JOB_NAME} - Build #${env.BUILD_NUMBER}"
 def content = '${JELLY_SCRIPT,template="html"}'
 def stage_tag = 'staging'
 def project_name = 'innovation-catalogue-connect'
-def deployment_instance = 'staging.innovation.api.scio.servicess'
+def deployment_instance = 'staging.innovation.api.scio.services'
 
 pipeline {
     agent any
