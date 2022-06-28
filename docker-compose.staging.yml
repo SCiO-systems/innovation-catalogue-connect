@@ -4,7 +4,7 @@ services:
         build:
           dockerfile: ./nginx/Dockerfile
           context: ./
-        image: sciohub/innovation-catalogue-connect:nginx
+        image: sciohub/innovation-catalogue-connect-nginx:staging
         container_name: laravel-nginx
         restart: unless-stopped
         volumes:
