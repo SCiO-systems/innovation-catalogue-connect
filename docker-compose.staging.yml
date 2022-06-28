@@ -10,8 +10,16 @@ services:
         ports:
           - 50100:443
           - 50101:80
+        networks:
+          - default  
 
     php:
         image: sciohub/innovation-catalogue-connect:staging
         container_name: laravel-app
         restart: unless-stopped
+        networks:
+          - default
+
+networks:
+  default:
+    name: app
