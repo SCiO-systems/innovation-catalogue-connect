@@ -1,4 +1,4 @@
-FROM phpdockerio/php:8.1-fpm
+FROM sciohub/php:8.1-fpm
 WORKDIR /app
 
 COPY . .
