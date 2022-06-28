@@ -43,7 +43,7 @@ pipeline {
 
                 script {
                     sshagent(credentials: ['jenkins-ssh-key']) {
-                        sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} sudo mkdir -p /var/lib/${project_name}-${stage_tag}/nginx"
+                        sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} sudo mkdir -p /var/lib/${project_name}-${stage_tag}"
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} sudo chown -R scio:scio /var/lib/${project_name}-${stage_tag}"
                         sh "scp -P 1412 -o StrictHostKeyChecking=no docker-compose.${stage_tag}.yml scio@${deployment_instance}:/var/lib/${project_name}-${stage_tag}"
                         sh "ssh -p1412 -o StrictHostKeyChecking=no scio@${deployment_instance} docker rm -f laravel-app laravel-nginx"
