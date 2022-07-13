@@ -266,7 +266,7 @@ class InnovationController extends Controller
     function getAllPublishedInnovations()
     {
 
-        //Find the distinct innovations of user_id
+        //Find the distinct innovations
         $innovationsDistinct = Innovation::where('deleted', false)
             ->distinct('innovId')
             ->get();
@@ -287,7 +287,7 @@ class InnovationController extends Controller
                 //$innovationEnhanced->name = $publishedInnovation->formData;
                 foreach($publishedInnovation->formData as $singleField)
                 {
-                    if($singleField["id"] == "1.1")
+                    if(strcmp($singleField["id"],"1.1") == 0)
                     {
                         $innovationEnhanced->name = $singleField["value"];
                     }
