@@ -281,10 +281,8 @@ class InnovationController extends Controller
                 ->first();
 
             if ($publishedInnovation != null) {
-                //$innovations[] = $publishedInnovations;
                 $innovationEnhanced = new stdClass();
                 $innovationEnhanced->innovation_id = $publishedInnovation->innovId;
-                //$innovationEnhanced->name = $publishedInnovation->formData;
                 foreach($publishedInnovation->formData as $singleField)
                 {
                     if(strcmp($singleField["id"],"1.1") == 0)
