@@ -36,7 +36,7 @@ class ClarisaVocabulariesController extends Controller
         foreach ($usefulHeaders as $header)
         {
             //Log::info("HERE'S THE VOCAB", $vocabToArray[$header]);
-            $value = array();
+            $singleValue = array();
             foreach ($vocabToArray[$header] as $fields)
             {
                 if(strcmp($header, "clarisa_administrative_scale") == 0 || strcmp($header, "clarisa_innovation_type") == 0)
@@ -54,10 +54,12 @@ class ClarisaVocabulariesController extends Controller
                 else{
                     $valueProperty = array("id" => $fields->id, "value" => $fields->name);
                 }
-                array_push($value, $valueProperty);
+                array_push($singleValue, $valueProperty);
 
             }
-            $singleHeader = array("header" => $header, "value" => $value);
+            $valueSorting = array_column($singleValue, 'value');
+            array_multisort($valueSorting, SORT_ASC, SORT_STRING, $singleValue);
+            $singleHeader = array("header" => $header, "value" => $singleValue);
             array_push($clarisa_vocabulary, $singleHeader);
         }
 
