@@ -119,6 +119,7 @@ class UserController extends Controller
         }
 
         //Redis
+        /*
         $client = new PredisClient([
             'scheme' => 'tcp',
             'host'   => env('REDIS_HOST',''),
@@ -131,11 +132,15 @@ class UserController extends Controller
         foreach($resultRedis as $singleUser)
         {
             array_push($usersFromRedis, json_decode($singleUser, true));
-        }
+        }*/
+
+
+        $users = User::orderBy('fullName', 'asc')->offset($request->offset)->limit($request->limit)->get();
+        $userCount = User::count();
 
 
         Log::info("Retrieving users from Redis");
-        return response()->json(["result" => "ok", "users" => $usersFromRedis, "total_users" => $userCount], 201);
+        return response()->json(["result" => "ok", "users" => $users, "total_users" => $userCount], 200);
     }
 
     //Retrieve all the users with "reviewer" permission     {admin}
