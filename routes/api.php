@@ -1,6 +1,7 @@
 <?php
 
 
+use App\Http\Controllers\ExternallyExposedFunctionsController;
 use App\Http\Controllers\WorkflowNotificationsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -109,3 +110,7 @@ route::post('retrievedocument', [RtbController::class, 'rtb_retrieve_document'])
     ['middleware' => 'jwt'], function () {
     route::post('retrievedocument', [RtbController::class, 'rtb_retrieve_document']);
     });*/
+
+//API calls externally exposed
+route::get('innovation/published/{innovation_id}/data', [ExternallyExposedFunctionsController::class, 'getSingleInnovation']);
+route::get('innovation/published/allData', [ExternallyExposedFunctionsController::class, 'getAllInnovations']);
