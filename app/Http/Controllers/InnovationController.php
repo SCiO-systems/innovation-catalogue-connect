@@ -1053,12 +1053,7 @@ class InnovationController extends Controller
                                 ->where('deleted', false)
                                 ->where(function ($query) {
                                     $query->where('status', "DRAFT")->
-                                    orWhere('status', "READY")->
-                                    orWhere('status', "REVIEWER_ASSIGNMENT")->
-                                    orWhere('status', "TAKE_FINAL_DECISION")->
-                                    orWhere('status', "REVISIONS_REQUESTED")->
-                                    orWhere('status', "UNDER_REVIEW")->
-                                    orWhere('status', "UNDER_SR_ASSESSMENT");
+                                    orWhere('status', "READY");
                                     })
                                 ->first();
 
@@ -1096,6 +1091,7 @@ class InnovationController extends Controller
         return response()->json(["result" => "ok"], 201);
     }
 
+    /*
     //Delete an innovation with status REJECTED based on createdAt attribute      {user, admin}
     public function deleteRejectedInnovation($innovation_id, $user_id, $created_at)
     {
@@ -1151,6 +1147,6 @@ class InnovationController extends Controller
         $innovation->save();
 
         return response()->json(["result" => "ok"], 201);
-    }
+    }*/
 
 }

@@ -1,6 +1,7 @@
 <?php
 
 
+use App\Http\Controllers\ExternallyExposedFunctionsController;
 use App\Http\Controllers\WorkflowNotificationsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -79,7 +80,7 @@ Route::get('user/{user_id}/getInnovations', [InnovationController::class, 'getAl
 Route::patch('innovation/{innovation_id}/edit', [InnovationController::class, 'editInnovation']);
 Route::patch('innovation/{innovation_id}/submit', [InnovationController::class, 'submitInnovation']);
 Route::delete('innovation/{innovation_id}/delete/{user_id}', [InnovationController::class, 'deleteInnovation']);
-Route::delete('innovation/{innovation_id}/deleteRejected/user/{user_id}/createdAt/{created_at}', [InnovationController::class, 'deleteRejectedInnovation']);
+//Route::delete('innovation/{innovation_id}/deleteRejected/user/{user_id}/createdAt/{created_at}', [InnovationController::class, 'deleteRejectedInnovation']);
 
 //Admin calls and routes for innovation data
 Route::get('admin/{user_id}/getInnovations', [InnovationController::class, 'getAllInnovations']);
@@ -109,3 +110,7 @@ route::post('retrievedocument', [RtbController::class, 'rtb_retrieve_document'])
     ['middleware' => 'jwt'], function () {
     route::post('retrievedocument', [RtbController::class, 'rtb_retrieve_document']);
     });*/
+
+//API calls externally exposed
+route::get('innovation/published/{innovation_id}/data', [ExternallyExposedFunctionsController::class, 'getSingleInnovation']);
+route::get('innovation/published/allData', [ExternallyExposedFunctionsController::class, 'getAllInnovations']);
