@@ -96,7 +96,8 @@ class UserController extends Controller
         $rules = array(
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
             'offset' => 'required|int',
-            'limit' => 'required|int|gt:offset'
+            'limit' => 'required|int|gt:offset',
+            'order' => 'required|string'
         );
 
         $validator = Validator::make($request->toArray(),$rules);
@@ -134,12 +135,22 @@ class UserController extends Controller
             array_push($usersFromRedis, json_decode($singleUser, true));
         }*/
 
+        if(strcmp($request->order, 'ascending'))
+        {
+            $users = User::orderBy('fullName', 'asc')->offset($request->offset)->limit($request->limit)->get();
+        }elseif (strcmp($request->order, 'descending'))
+        {
+            $users = User::orderBy('fullName', 'desc')->offset($request->offset)->limit($request->limit)->get();
+        }
+        else
+        {
+            Log::error("Wrong parameters given", [$request->toArray()]);
+            return response()->json(["result" => "failed","errorMessage" => 'Wrong parameters given'], 202);
+        }
 
-        $users = User::orderBy('fullName', 'asc')->offset($request->offset)->limit($request->limit)->get();
+
         $userCount = User::count();
-
-
-        Log::info("Retrieving users from Redis");
+        Log::info("Retrieving users from mongo paginated");
         return response()->json(["result" => "ok", "users" => $users, "total_users" => $userCount], 200);
     }
 
