@@ -108,7 +108,7 @@ class WorkflowNotificationsController extends Controller
 
         $data=[
             "sender" => [
-                "name" => "Innovation",
+                "name" => "Innovation Catalog",
               "email" => "innovation_noreply@scio.systems"
             ],
             "to" => [
