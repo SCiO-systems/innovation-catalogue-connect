@@ -21,12 +21,14 @@ class WorkflowNotificationsController extends Controller
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_POST, true);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        if(env('APP_STATE', '') == 'dev'){
-            $apiKey = env('SEND_IN_BLUE_DEV_KEY', '');
-        }
-        elseif (env('APP_STATE', '') == 'prod')
+
+        if (env('APP_STATE', '') == 'prod')
         {
             $apiKey = env('SEND_IN_BLUE_PROD_KEY', '');
+        }
+        else
+        {
+            $apiKey = env('SEND_IN_BLUE_DEV_KEY', '');
         }
 
         $headers = array(
@@ -124,7 +126,7 @@ class WorkflowNotificationsController extends Controller
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
         $resp = curl_exec($curl);
 
-        //Log::info("I SENT IT", [$resp]);
+        Log::info("Email has been sent: ", [$resp]);
 
         if ($workflowState == 1)
         {
