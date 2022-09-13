@@ -576,7 +576,7 @@ class InnovationController extends Controller
         $innovation->save();
         Log::info('Submitting innovation', [$innovation]);
 
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 1, 'user_id' => $request->user_id, 'title' => ""]);
+        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 1, 'user_id' => $request->user_id, 'title' => "NoName"]);
         //return redirect()->action([WorkflowNotificationsController::class, 'sendNotificationEmail']);
         //return response()->json(["result" => "ok"], 201);
     }
@@ -654,7 +654,7 @@ class InnovationController extends Controller
         $innovation->assignedAt = $currentTime;
         $innovation->save();
         Log::info('Assigning innovation to reviewer ', [$innovation]);
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 3, 'user_id' => $reviewUser->userId, 'title' => ""]);
+        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 3, 'user_id' => $reviewUser->userId, 'title' => "NoName"]);
 
         //return response()->json(["result" => "ok"], 201);
     }
@@ -718,7 +718,7 @@ class InnovationController extends Controller
         $innovation->assignedAt = $currentTime;
         $innovation->save();
         Log::info('Assigning innovation to scaling readiness expert ', [$innovation]);
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 5, 'user_id' => $sreUser->userId, 'title' => ""]);
+        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 5, 'user_id' => $sreUser->userId, 'title' => "NoName"]);
 
         //return response()->json(["result" => "ok"], 201);
     }
@@ -959,7 +959,7 @@ class InnovationController extends Controller
         $innovation->save();
         Log::info('Approving innovation for final decision', [$innovation]);
 
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 4, 'user_id' => env('ADMIN_USER', ''), 'title' => ""]);
+        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 4, 'user_id' => env('ADMIN_USER', ''), 'title' => "NoName"]);
 
         //return response()->json(["result" => "ok"], 201);
     }
