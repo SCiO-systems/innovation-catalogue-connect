@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use GuzzleHttp\Psr7;
 use stdClass;
+use function PHPUnit\Framework\isEmpty;
 
 class ElasticPopulationController extends Controller
 {
@@ -107,14 +108,15 @@ class ElasticPopulationController extends Controller
 
         $elasticDocument = array();
         $elasticDocumentSpecialCase = array();
+        Log::info("ALL DATA BOIIIII", $innovation->formData);
         foreach ($innovation->formData as $singleField)
         {
+            Log::info("NOW THIS ONE", [$singleField]);
             $indexingKey = $singleField["id"];
             //General Case, no transformation or extra handling required
             if(array_key_exists($indexingKey, $mapping_index)){
                 $elasticField = [$mapping_index[$indexingKey] => $singleField["value"]];
                 $elasticDocument = array_merge($elasticDocument, $elasticField);
-
             }
             elseif(array_key_exists($indexingKey, $specialCaseMappingIndex))
             {
@@ -123,7 +125,14 @@ class ElasticPopulationController extends Controller
                     case "1.7":
                     case "4.3":
                     case "5.4":
-                        $elasticField = [$specialCaseMappingIndex[$indexingKey] => $singleField["value"][0]["name"]];
+                        Log::info("trying to figure staffff out", $singleField["value"]);
+                        if (empty($singleField["value"]) || is_null($singleField["value"]))
+                        {
+                            $elasticField = [$specialCaseMappingIndex[$indexingKey] =>$singleField["value"]];
+                        }
+                        else{
+                            $elasticField = [$specialCaseMappingIndex[$indexingKey] => $singleField["value"][0]["name"]];
+                        }
                         $elasticDocument = array_merge($elasticDocument, $elasticField);
                         break;
                     case "1.8":
@@ -180,8 +189,14 @@ class ElasticPopulationController extends Controller
                     case "3.2":
                     case "3.3":
                         //String with the complete date, only need the year
-                        $explodedDate = explode(" ",$singleField["value"]);
-                        $elasticField = [$specialCaseMappingIndex[$indexingKey] => [$explodedDate[3]]];
+                        if((isEmpty($singleField["value"])) || strcmp($singleField["value"],"Invalid Date") == 0)
+                        {
+                            $elasticField = [$specialCaseMappingIndex[$indexingKey] =>""];
+                        }
+                        else{
+                            $explodedDate = explode(" ",$singleField["value"]);
+                            $elasticField = [$specialCaseMappingIndex[$indexingKey] => [$explodedDate[3]]];
+                        }
                         $elasticDocument = array_merge($elasticDocument, $elasticField);
                         break;
                     case "4.1":

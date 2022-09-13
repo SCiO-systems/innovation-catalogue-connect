@@ -13,20 +13,22 @@ class RtbController extends Controller
 
     public function rtb_search(Request $request)
     {
-        if(env('APP_STATE', '') == 'dev')
+        /*if(env('APP_STATE', '') == 'dev')
         {
             $urlString = '/api/v2/search/dev/rtb/innovations';
         }
         else
         {
             $urlString = '/api/v2/search/rtb/innovations';
-        }
+        }*/
 
+        $urlString = '/api/v2/search/rtb/innovations';
         $header = ['Content-Type: application/json'];
         $body = $request->getContent();
         $response = Http::withHeaders($header)->withBody($body, 'json')->post(env('INNOVATION_ES','').$urlString);
 
         $json = json_decode($response);
+
 
 
         /*

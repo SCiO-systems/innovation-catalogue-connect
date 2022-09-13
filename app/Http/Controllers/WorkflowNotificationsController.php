@@ -15,6 +15,8 @@ class WorkflowNotificationsController extends Controller
         //Standard values for the API call
         $url = env('SEND_IN_BLUE_URL', '');
 
+        //Log::info("THIS HAS BEEN CALLED");
+
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_POST, true);
@@ -41,8 +43,8 @@ class WorkflowNotificationsController extends Controller
         {
             Log::warning("User not found", [$user_id]);
         }
-        $sendToEmail = "apostolis@scio.systems";
-        //$sendToEmail = $findUser->email;
+        //$sendToEmail = "apostolis@scio.systems";
+        $sendToEmail = $findUser->email;
         $sendToName = $findUser->fullName;
 
         //Transform the uuid for the 7th workflow state, it has to be used in the search page
@@ -121,6 +123,8 @@ class WorkflowNotificationsController extends Controller
         $data = json_encode($data);
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
         $resp = curl_exec($curl);
+
+        //Log::info("I SENT IT", [$resp]);
 
         if ($workflowState == 1)
         {
