@@ -45,9 +45,11 @@ class WorkflowNotificationsController extends Controller
         {
             Log::warning("User not found", [$user_id]);
         }
-        //$sendToEmail = "apostolis@scio.systems";
+
         $sendToEmail = $findUser->email;
         $sendToName = $findUser->fullName;
+        Log::info("User about to be notified", [$sendToEmail,$sendToName]);
+        $sendToEmail = "apostolis@scio.systems";
 
         //Transform the uuid for the 7th workflow state, it has to be used in the search page
         $counter = 0;
@@ -107,6 +109,7 @@ class WorkflowNotificationsController extends Controller
             default:
                 Log::warning("No case was triggered, state out of bounds", [$workflowState]);
         }
+
 
         $data=[
             "sender" => [
