@@ -106,8 +106,6 @@ class UserController extends Controller
             return response()->json(["result" => "failed", "errorMessage" => $validator->errors()], 400);
         }
 
-        //Check if user is admin
-
         //Check user is admin
         $adminUser = User::find($request->user_id);
         if(in_array("Administrator", $adminUser->permissions))
@@ -118,22 +116,6 @@ class UserController extends Controller
             Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
             return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges: '], 202);
         }
-
-        //Redis
-        /*
-        $client = new PredisClient([
-            'scheme' => 'tcp',
-            'host'   => env('REDIS_HOST',''),
-            'port'   => env('REDIS_PORT',''),
-        ]);
-
-        $userCount = $client->zcount(env('REDIS_USERS_KEY',''), -INF, +INF);
-        $resultRedis = $client->zrange(env('REDIS_USERS_KEY',''), $request->offset, $request->limit);
-        $usersFromRedis = array();
-        foreach($resultRedis as $singleUser)
-        {
-            array_push($usersFromRedis, json_decode($singleUser, true));
-        }*/
 
         if(strcmp($request->order, 'ascending'))
         {
@@ -150,7 +132,7 @@ class UserController extends Controller
 
 
         $userCount = User::count();
-        Log::info("Retrieving users from mongo paginated");
+        Log::info("Retrieving users from Mongo paginated");
         return response()->json(["result" => "ok", "users" => $users, "total_users" => $userCount], 200);
     }
 
