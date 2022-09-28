@@ -1,12 +1,12 @@
 version: '3.8'
 services:
     nginx:        
-        image: sciohub/innovation-catalogue-connect-nginx:staging
+        image: sciohub/innovation-catalogue-connect-nginx:prod
         container_name: laravel-nginx
         restart: unless-stopped
         volumes:
-          - /etc/letsencrypt/live/staging.innovation.api.scio.services/fullchain.pem:/etc/letsencrypt/live/staging.innovation.api.scio.services/fullchain.pem
-          - /etc/letsencrypt/live/staging.innovation.api.scio.services/privkey.pem:/etc/letsencrypt/live/staging.innovation.api.scio.services/privkey.pem
+          - /etc/letsencrypt/live/innovation.api.scio.services/fullchain.pem:/etc/letsencrypt/live/innovation.api.scio.services/fullchain.pem
+          - /etc/letsencrypt/live/innovation.api.scio.services/privkey.pem:/etc/letsencrypt/live/innovation.api.scio.services/privkey.pem
         ports:
           - 50100:443
           - 50101:80
@@ -14,7 +14,7 @@ services:
           - default  
 
     php:
-        image: sciohub/innovation-catalogue-connect:staging
+        image: sciohub/innovation-catalogue-connect:prod
         container_name: laravel-app
         restart: unless-stopped
         networks:
