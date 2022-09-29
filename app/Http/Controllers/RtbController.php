@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Http\Traits\RequestHelperTrait;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class RtbController extends Controller
@@ -137,6 +138,7 @@ class RtbController extends Controller
 
     public function rtb_retrieve_document(Request $request)
     {
+        /*
         if(env('APP_STATE', '') == 'dev')
         {
             $urlString = '/api/v1/search/dev/retrivebyid';
@@ -144,7 +146,8 @@ class RtbController extends Controller
         else
         {
             $urlString = '/api/v1/search/retrivebyid';
-        }
+        }*/
+        $urlString = '/api/v1/search/retrivebyid';
         $header = ['Content-Type: application/json'];
         $body = $request->getContent();
         $requiredBodyData = [
@@ -376,6 +379,7 @@ class RtbController extends Controller
 
     public function rtb_retrievedocument_by_title(Request $request)
     {
+        /*
         if(env('APP_STATE', '') == 'dev')
         {
             $urlString = '/api/v1/search/dev/retrievebytitle';
@@ -383,7 +387,8 @@ class RtbController extends Controller
         else
         {
             $urlString = '/api/v1/search/retrievebytitle';
-        }
+        }*/
+        $urlString = '/api/v1/search/retrievebytitle';
         $requestType = 'POST';
         $header = ['Content-Type: application/json'];
         $requiredBodyData = [
@@ -420,6 +425,7 @@ class RtbController extends Controller
     private function createCombinationalArray(array $shortNameArray, array $longNameArray)
     {
 
+        $combinationalArray = [];
         for ($i = 0; $i < sizeof($longNameArray); $i++) {
             $combinationalArray[] = [
                 'short' => $shortNameArray[$i],

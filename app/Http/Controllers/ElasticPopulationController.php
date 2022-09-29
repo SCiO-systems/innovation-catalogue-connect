@@ -33,17 +33,13 @@ class ElasticPopulationController extends Controller
             "2.2" => "value_added",
             "2.3" => "main_advantages",
             "2.4" => "main_disadvantages",
-            "2.5" => "problem_to_be_solved",
-            "2.8" => "initiative_defined_outcome",
             "2.9" => "environmental_benefits",
             "3.1" => "locations_of_implementation",                     //Missing 3.2 & 3.3 requires transformation
             "3.4" => "applied_evidence_locations",
             "3.5" => "impact_evidence_locations",
             "4.2" => "technology_appraisal",                            //Missing 4.1 & 4.3 requires heavy transformation
-            "4.4" => "documentation",
             "5.1" => "patent_member_type",                              //Missing 5.4 requires transformation
             "5.2" => "patent_number",
-            "5.3" => "patent_office",
             "6.2" => "intervention_total_budget",                       //Missing 6.1 & 6.3 requires transformation
             "6.4" => "challenge_statement",
             "6.5" => "objective_statement",
@@ -58,22 +54,26 @@ class ElasticPopulationController extends Controller
             "8.5" => "scaling_readiness_level",
             "8.6" => "scaling_readiness_score",
             "9.1" => "innovation_users",                                //Missing 9.4 & 9.5 & 9.6
-            "9.2" => "innovation_beneficiaries",
-            "9.3" => "innovation_sponsors");
+            "9.2" => "innovation_beneficiaries");
 
 
         $specialCaseMappingIndex = array("1.7" => "innovation_image",   //6.1, splits in 2 fields
             "1.8" => "innovation_image_component",
             "1.13" => "uuids_of_related_innovations",
+            "2.5" => "problem_to_be_solved",
             "2.6" => "SDG_targets",
             "2.7" => "CGIAR_impact_targets",
+            "2.8" => "initiative_defined_outcome",
             "3.2" => "work_start_date",
             "3.3" => "work_end_date",
             "4.1" => "innovation_reference_materials",
             "4.3" => "technology_appraisal_image",
+            "4.4" => "documentation",
+            "5.3" => "patent_office",
             "5.4" => "patent_know_how_info",
             "6.1" => "intervention_full_name",
             "6.3" => "intervention_team_members",
+            "9.3" => "innovation_sponsors",
             "9.4" => "key_innovation_partners",
             "9.5" => "key_demand_partners",
             "9.6" => "key_scaling_partners");
@@ -108,10 +108,9 @@ class ElasticPopulationController extends Controller
 
         $elasticDocument = array();
         $elasticDocumentSpecialCase = array();
-        Log::info("ALL DATA BOIIIII", $innovation->formData);
+        //Log::info("ALL DATA BOIIIII", $innovation->formData);
         foreach ($innovation->formData as $singleField)
         {
-            Log::info("NOW THIS ONE", [$singleField]);
             $indexingKey = $singleField["id"];
             //General Case, no transformation or extra handling required
             if(array_key_exists($indexingKey, $mapping_index)){
@@ -125,10 +124,9 @@ class ElasticPopulationController extends Controller
                     case "1.7":
                     case "4.3":
                     case "5.4":
-                        Log::info("trying to figure staffff out", $singleField["value"]);
                         if (empty($singleField["value"]) || is_null($singleField["value"]))
                         {
-                            $elasticField = [$specialCaseMappingIndex[$indexingKey] =>$singleField["value"]];
+                            $elasticField = [$specialCaseMappingIndex[$indexingKey] =>""];
                         }
                         else{
                             $elasticField = [$specialCaseMappingIndex[$indexingKey] => $singleField["value"][0]["name"]];
@@ -172,6 +170,14 @@ class ElasticPopulationController extends Controller
                         $elasticField = [$specialCaseMappingIndex[$indexingKey] => $transformedValue];
                         $elasticDocument = array_merge($elasticDocument, $elasticField);
                         break;
+                    case "2.5":
+                    case "2.8":
+                    case "4.4":
+                        //Transform to list with one element
+                        $transformedValue = [$singleField["value"]];
+                        $elasticField = [$specialCaseMappingIndex[$indexingKey] => $transformedValue];
+                        $elasticDocument = array_merge($elasticDocument, $elasticField);
+                        break;
                     case "2.6":
                     case "2.7":
                         //Array with objects, useful data are stored in "value" field
@@ -189,11 +195,13 @@ class ElasticPopulationController extends Controller
                     case "3.2":
                     case "3.3":
                         //String with the complete date, only need the year
+                        //Log::info("trying to figure staffff out", $singleField["value"]);
                         if((isEmpty($singleField["value"])) || strcmp($singleField["value"],"Invalid Date") == 0)
                         {
-                            $elasticField = [$specialCaseMappingIndex[$indexingKey] =>""];
+                            $elasticField = [$specialCaseMappingIndex[$indexingKey] =>[0]];
                         }
                         else{
+
                             $explodedDate = explode(" ",$singleField["value"]);
                             $elasticField = [$specialCaseMappingIndex[$indexingKey] => [$explodedDate[3]]];
                         }
@@ -208,6 +216,12 @@ class ElasticPopulationController extends Controller
                             array_push($referencesArray, $transformedValue);
                         }
                         $elasticField = [$specialCaseMappingIndex[$indexingKey] => $referencesArray];
+                        $elasticDocument = array_merge($elasticDocument, $elasticField);
+                        break;
+                    case "5.3":
+                        //Transform int to string
+                        $transformedValue = strval($singleField["value"]);
+                        $elasticField = [$specialCaseMappingIndex[$indexingKey] => $transformedValue];
                         $elasticDocument = array_merge($elasticDocument, $elasticField);
                         break;
                     case "6.1":
@@ -237,6 +251,25 @@ class ElasticPopulationController extends Controller
                             array_push($membersArray, $transformedValue);
                         }
                         $elasticField = [$specialCaseMappingIndex[$indexingKey] => $membersArray];
+                        $elasticDocument = array_merge($elasticDocument, $elasticField);
+                        break;
+                    case "9.3":
+                        //Convert list of strings to a single string
+                        $transformedValue = "";
+                        $counter = 0;
+                        foreach($singleField["value"] as $singleMember)
+                        {
+                            if($counter == 0)
+                            {
+                                $transformedValue = $singleField["value"];
+                            }
+                            else
+                            {
+                                $transformedValue = $transformedValue.", ".$singleField["value"];
+                            }
+                            $counter++;
+                        }
+                        $elasticField = [$specialCaseMappingIndex[$indexingKey] => $transformedValue];
                         $elasticDocument = array_merge($elasticDocument, $elasticField);
                         break;
                     case "9.4":
@@ -316,24 +349,37 @@ class ElasticPopulationController extends Controller
         $elasticField = ["user_id" => $innovation["userIds"]];
         $elasticDocument = array_merge($elasticDocument, $elasticField);
         //"innovation_image_id"
-        $elasticField = ["innovation_image_id" => ""];
+        $elasticField = ["innovation_image_id" => 0];
         $elasticDocument = array_merge($elasticDocument, $elasticField);
         //"HDL"
-        $elasticField = ["HDL" => $innovation["persistId"]];
+        if(empty($innovation["persistId"]) || is_null($innovation["persistId"]))
+        {
+            $elasticField = ["HDL" => ""];
+        }
+        else
+        {
+            $elasticField = ["HDL" => $innovation["persistId"][0]];
+        }
+        $elasticDocument = array_merge($elasticDocument, $elasticField);
+        //"experimental_evidence_locations"
+        $elasticField = ["experimental_evidence_locations" => [""]];
+        $elasticDocument = array_merge($elasticDocument, $elasticField);
+        //"estimated_amount_sought"
+        $elasticField = ["estimated_amount_sought" => 0];
         $elasticDocument = array_merge($elasticDocument, $elasticField);
         //"mel_id_single"
-        $elasticField = ["mel_id_single" => ""];
+        $elasticField = ["mel_id_single" => 0];
+        $elasticDocument = array_merge($elasticDocument, $elasticField);
+        //"mel_version_id_single"
+        $elasticField = ["mel_version_id_single" => 0];
         $elasticDocument = array_merge($elasticDocument, $elasticField);
         //"mel_ids_of_related_innovations"
-        $elasticField = ["mel_ids_of_related_innovations" => [" "]];
+        $elasticField = ["mel_ids_of_related_innovations" => [""]];
         $elasticDocument = array_merge($elasticDocument, $elasticField);
         //"last_updated"
         $d = new DateTime( '@'. $innovation["updatedAt"]/1000 );
         $transformedValue =  $d->format("d/m/Y");
         $elasticField = ["last_updated" => $transformedValue];
-        $elasticDocument = array_merge($elasticDocument, $elasticField);
-        //"mel_id_version_single"
-        $elasticField = ["mel_id_version_single" => null];
         $elasticDocument = array_merge($elasticDocument, $elasticField);
         //Suggesters
         //phrase_suggester
@@ -452,6 +498,34 @@ class ElasticPopulationController extends Controller
         $elasticDocument = array_merge($elasticDocument, $elasticField);
 
 
+        //Find and delete previous version
+        $params = [
+            'index' => 'rtb_innovations',
+            'body'  => [
+                "query" => [
+                    "match" => [
+                        "innovation_uuid" => $uuidTransformed
+                    ]
+                ]
+            ]
+        ];
+        $response = $client->search($params);
+        $documentInElastic = $response->asObject()->hits->hits;
+        if(empty($documentInElastic))
+        {
+            Log::info("Innovation does not exist in Elasticsearch", $documentInElastic);
+        }
+        else{
+            Log::info("Found the innovation in Elasticsearch", $documentInElastic);
+            $params = [
+                'index' => 'rtb_innovations',
+                'id'    => $documentInElastic[0]->_id
+            ];
+            $response = $client->delete($params);
+            Log::info("Deleted the innovation", [$response]);
+        }
+
+
         $params = [
             'index' => 'rtb_innovations',
             'body'  => $elasticDocument
@@ -459,10 +533,10 @@ class ElasticPopulationController extends Controller
         $response = $client->index($params);
         Log::info("Innovation published to elasticsearch", [$response]);
 
-        return redirect()->route('notifyUser', [ 'innovation_id' => $innovation_id, 'workflow_state' => 7, 'user_id' => $user["userId"], 'title' => $elasticDocument["innovation_common_name"]]);
 
-        //return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument ,"response" => $response->asObject()], 200);
+        return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument,"response" => $response->asObject()], 200);
 
+        //return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument]);
     }
 
     public function migrateToMongo()
