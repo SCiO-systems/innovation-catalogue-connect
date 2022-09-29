@@ -81,7 +81,7 @@ class ElasticPopulationController extends Controller
 
         //Elasticsearch client
         $client = ClientBuilder::create()
-            ->setHosts([env('INNOVATIONS_RTB_ES_PROD','')])
+            ->setHosts([env('INNOVATIONS_RTB_ES','')])
             ->build();
 
 
