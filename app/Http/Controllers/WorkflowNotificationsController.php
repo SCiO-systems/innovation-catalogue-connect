@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class WorkflowNotificationsController extends Controller
 {
 
-    function sendNotificationEmail($innovation_id, $workflowState, $user_id , $title)
+    public function sendNotificationEmail($innovation_id, $workflowState, $user_id , $title) :json
     {
         //$user_id, $workflowState
         //Standard values for the API call
@@ -129,8 +129,10 @@ class WorkflowNotificationsController extends Controller
         curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
         $resp = curl_exec($curl);
 
-        Log::info("Email has been sent: ", [$resp]);
+        Log::info("Email has been sent to: ", [$sendToEmail, $resp]);
+        return response()->json(["result" => $resp], 200);
 
+        /*
         if ($workflowState == 1)
         {
             return redirect()->route('notifyUser', [ 'innovation_id' => $innovation_id, 'workflow_state' => 2, 'user_id' => env('ADMIN_USER', ''), 'title' => $title]);
@@ -138,6 +140,6 @@ class WorkflowNotificationsController extends Controller
         else
         {
             return response()->json(["result" => $resp], 200);
-        }
+        }*/
     }
 }

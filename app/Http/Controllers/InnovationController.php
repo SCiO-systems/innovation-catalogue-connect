@@ -576,9 +576,14 @@ class InnovationController extends Controller
         $innovation->save();
         Log::info('Submitting innovation', [$innovation]);
 
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 1, 'user_id' => $request->user_id, 'title' => "NoName"]);
-        //return redirect()->action([WorkflowNotificationsController::class, 'sendNotificationEmail']);
-        //return response()->json(["result" => "ok"], 201);
+        //return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 1, 'user_id' => $request->user_id, 'title' => "NoName"]);
+        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,1,  $request->user_id, "NoName");
+        Log::info($whatWhat);
+
+        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,2,  env('ADMIN_USER', ''), "NoName");
+        Log::info($whatWhat);
+
+        return response()->json(["result" => "ok"], 201);
     }
 
 
@@ -654,9 +659,12 @@ class InnovationController extends Controller
         $innovation->assignedAt = $currentTime;
         $innovation->save();
         Log::info('Assigning innovation to reviewer ', [$innovation]);
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 3, 'user_id' => $reviewUser->userId, 'title' => "NoName"]);
 
-        //return response()->json(["result" => "ok"], 201);
+        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,3,  $request->user_id, "NoName");
+        Log::info($whatWhat);
+        //return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 3, 'user_id' => $reviewUser->userId, 'title' => "NoName"]);
+
+        return response()->json(["result" => "ok"], 201);
     }
 
     //Assign a scaling readiness expert to an innovation with status TAKE_FINAL_DECISION based on reviewer_id given              {admin}
@@ -718,9 +726,12 @@ class InnovationController extends Controller
         $innovation->assignedAt = $currentTime;
         $innovation->save();
         Log::info('Assigning innovation to scaling readiness expert ', [$innovation]);
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 5, 'user_id' => $sreUser->userId, 'title' => "NoName"]);
 
-        //return response()->json(["result" => "ok"], 201);
+        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,5,  $sreUser->userId, "NoName");
+        Log::info($whatWhat);
+        //return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 5, 'user_id' => $sreUser->userId, 'title' => "NoName"]);
+
+        return response()->json(["result" => "ok"], 201);
     }
 
     //Add comments to an innovation that is under review              {reviewer}
@@ -846,9 +857,11 @@ class InnovationController extends Controller
             }
         }
 
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 6, 'user_id' => $request->user_id, 'title' => $innovationName]);
+        //return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 6, 'user_id' => $request->user_id, 'title' => $innovationName]);
+        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,6,  $request->user_id, $innovationName);
+        Log::info($whatWhat);
 
-        //return response()->json(["result" => "ok"], 201);
+        return response()->json(["result" => "ok"], 201);
     }
 
     //Reject a submitted innovation                                   {admin}
@@ -959,9 +972,12 @@ class InnovationController extends Controller
         $innovation->save();
         Log::info('Approving innovation for final decision', [$innovation]);
 
-        return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 4, 'user_id' => env('ADMIN_USER', ''), 'title' => "NoName"]);
+        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,4,  env('ADMIN_USER', ''), "NoName");
+        Log::info($whatWhat);
 
-        //return response()->json(["result" => "ok"], 201);
+        //return redirect()->route('notifyUser', [ 'innovation_id' => $request->innovation_id, 'workflow_state' => 4, 'user_id' => env('ADMIN_USER', ''), 'title' => "NoName"]);
+
+        return response()->json(["result" => "ok"], 201);
     }
 
     //Publish a submitted innovation                                {admin, scaling readiness expert}
@@ -1025,10 +1041,13 @@ class InnovationController extends Controller
         $innovation->save();
         Log::info('Publishing innovation, will also add it to elastic', [$innovation]);
 
+        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,7, $innovation->userIds[0] , "NoName");
+        Log::info($whatWhat);
 
-
-        return redirect()->route('elasticSearchPublish', [ 'innovation_id' => $request->innovation_id]);
-        //return response()->json(["result" => "ok"], 201);
+        $elasticWhatWhat = (new ElasticPopulationController())->publishToElastic($request->innovation_id);
+        Log::info($elasticWhatWhat);
+        //return redirect()->route('elasticSearchPublish', [ 'innovation_id' => $request->innovation_id]);
+        return response()->json(["result" => "ok"], 201);
     }
 
 
