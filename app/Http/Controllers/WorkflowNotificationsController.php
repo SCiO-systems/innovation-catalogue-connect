@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Log;
 class WorkflowNotificationsController extends Controller
 {
 
-    public function sendNotificationEmail($innovation_id, $workflowState, $user_id , $title) :json
+    public function sendNotificationEmail($innovation_id, $workflowState, $user_id , $title)
     {
         //$user_id, $workflowState
         //Standard values for the API call

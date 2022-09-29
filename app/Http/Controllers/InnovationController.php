@@ -1041,11 +1041,12 @@ class InnovationController extends Controller
         $innovation->save();
         Log::info('Publishing innovation, will also add it to elastic', [$innovation]);
 
+        $elasticWhatWhat = (new ElasticPopulationController())->publishToElastic($request->innovation_id);
+        Log::info($elasticWhatWhat);
+
         $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,7, $innovation->userIds[0] , "NoName");
         Log::info($whatWhat);
 
-        $elasticWhatWhat = (new ElasticPopulationController())->publishToElastic($request->innovation_id);
-        Log::info($elasticWhatWhat);
         //return redirect()->route('elasticSearchPublish', [ 'innovation_id' => $request->innovation_id]);
         return response()->json(["result" => "ok"], 201);
     }
