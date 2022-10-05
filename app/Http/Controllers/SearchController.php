@@ -54,7 +54,6 @@ class SearchController extends Controller
             ];
             $aggregationsArray = array_merge($aggregationsArray,$singleAggregation);
         }
-        //$aggregatesAsObject = (object) $aggregationsArray;
         Log::info("This is the aggregationsArray", [$aggregationsArray]);
 
         return $aggregationsArray;
@@ -99,6 +98,32 @@ class SearchController extends Controller
         return $shouldArray;
     }
 
+    //Handle ordered search
+    private function handleOrderedSearch($orderInfo) :array
+    {
+        //Check for the field that will be used for the ordered search
+        if(strcmp($orderInfo["field"], "title") == 0){
+            $fieldForOrdering = "innovation_common_name.keyword";
+        }
+        else if(strcmp($orderInfo["field"], "last_updated") == 0)
+        {
+            $fieldForOrdering = "work_end_date";
+        }
+        else
+        {
+            //Invalid argument return empty array
+            Log::error("Wrong ordering arguments given");
+            return array();
+
+        }
+        $sortArray = array([
+            $fieldForOrdering => [
+                "order" => $orderInfo["sort"]
+            ]
+        ]);
+        return $sortArray;
+    }
+
     public function searchInnovationIndex(Request $request)
     {
 
@@ -113,28 +138,18 @@ class SearchController extends Controller
 
         //Transform it to the correct query format for elasticsearch
 
-        $filterKeyMapping = array(
-            "title" => "innovation_common_name",
-            "last_updated" => "work_end_date",
-            "cgiar_action_areas" => "CGIAR_action_areas_name",
-            "region" => "region",
-            "submitter_company_name" => "submitter_company_name",
-            "env_benefits" => "environmental_benefits",
-            "type_of_innovation" => "innovation_type_new",
-            "business_category" => "business_category",
-            "technical_fields" => "technical_fields",
-            "gov_type" => "gov_type_of_solution",
-            "impact_areas" => "impact_areas",
-            "countries" => "locations_of_implementation",
-            "keywords" => "related_keywords",
-            "sdg_targets" => "sdg_targets",
-            "sdgs" => "SDG.fullName"
-        );
-
         //Create the aggregations
-        $aggregatesAsObject = (object) (new SearchController())->handleAggregations();
-        //$aggregatesAsObject = (object) $aggregationsArray;
-        Log::info("This is the aggregationsArray", [$aggregatesAsObject]);
+        $aggregationsArray = (new SearchController())->handleAggregations();
+        if(!empty($aggregationsArray))
+        {
+            $aggregatesAsObject = (object) $aggregationsArray;
+            Log::info("These are the aggregations", [$aggregatesAsObject]);
+        }
+        else
+        {
+            Log::error("Something went wrong with the aggregations", [$aggregationsArray]);
+            return response()->json(["result" => "failed", "errorMessage" => "Internal Server Error"], 500);
+        }
 
 
         //Check for filters and make the correct terms
@@ -154,23 +169,11 @@ class SearchController extends Controller
         {
             $orderedSearchFlag = 1;
             $orderInfo = $requestBody["operation"]["details"]["order"];
-            if(strcmp($orderInfo["field"], "title") == 0){
-                $fieldForOrdering = "innovation_common_name.keyword";
-            }
-            else if(strcmp($orderInfo["field"], "last_updated") == 0)
+            $sortArray = (new SearchController())->handleOrderedSearch($orderInfo);
+            if(empty($sortArray))
             {
-                $fieldForOrdering = "work_end_date";
-            }
-            else
-            {
-                Log::error("Wrong ordering arguments given");
                 return response()->json(["result" => "failed", "errorMessage" => "Wrong ordering arguments given"], 400);
             }
-            $sortArray = array([
-                $fieldForOrdering => [
-                    "order" => $orderInfo["sort"]
-                ]
-            ]);
         }
 
         if($orderedSearchFlag)
@@ -234,7 +237,9 @@ class SearchController extends Controller
         Log::info("Got a response from elasticsearch", [$response->asObject()->hits->total]);
 
 
-        //TODO:Transform it to the UI specified format
+        //Transform data for the UI
+
+
 
         return response()->json(["result" => "ok", "elasticDoco" => $response->asObject()], 200);
 
