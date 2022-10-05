@@ -60,6 +60,45 @@ class SearchController extends Controller
         return $aggregationsArray;
     }
 
+    //Creates the terms components based on the filters given
+    private function handleTerms($filters) :array
+    {
+        $filterKeyMapping = array(
+            "title" => "innovation_common_name",
+            "last_updated" => "work_end_date",
+            "cgiar_action_areas" => "CGIAR_action_areas_name",
+            "region" => "region",
+            "submitter_company_name" => "submitter_company_name",
+            "env_benefits" => "environmental_benefits",
+            "type_of_innovation" => "innovation_type_new",
+            "business_category" => "business_category",
+            "technical_fields" => "technical_fields",
+            "gov_type" => "gov_type_of_solution",
+            "impact_areas" => "impact_areas",
+            "countries" => "locations_of_implementation",
+            "keywords" => "related_keywords",
+            "sdg_targets" => "sdg_targets",
+            "sdgs" => "SDG.fullName"
+        );
+
+        $shouldArray = array();
+        foreach ($filters as $filter){
+            $key = $filter["key"];
+            if (array_key_exists($key, $filterKeyMapping))
+            {
+                $term = array(
+                    $filterKeyMapping[$key].".keyword" => [
+                        "value" => $filter["value"]
+                    ]
+                );
+                array_push($shouldArray, ["term" => $term]);
+            }
+
+        }
+
+        return $shouldArray;
+    }
+
     public function searchInnovationIndex(Request $request)
     {
 
@@ -103,21 +142,8 @@ class SearchController extends Controller
         if(!empty($filters))
         {
             Log::info($filters);
+            $shouldArray = (new SearchController())->handleTerms($filters);
 
-            $shouldArray = array();
-            foreach ($filters as $filter){
-                $key = $filter["key"];
-                if (array_key_exists($key, $filterKeyMapping))
-                {
-                    $term = array(
-                        $filterKeyMapping[$key].".keyword" => [
-                            "value" => $filter["value"]
-                        ]
-                    );
-                    array_push($shouldArray, ["term" => $term]);
-                }
-
-            }
             Log::info("ITS ALIVE", ["should" =>$shouldArray]);
         }
 
