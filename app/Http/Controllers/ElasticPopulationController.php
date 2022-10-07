@@ -526,15 +526,15 @@ class ElasticPopulationController extends Controller
         }
 
 
-        $params = [
+        $paramsForPublishing = [
             'index' => 'rtb_innovations',
             'body'  => $elasticDocument
         ];
-        $response = $client->index($params);
-        Log::info("Innovation published to elasticsearch", [$response]);
+        $responsePublishing = $client->index($paramsForPublishing);
+        Log::info("Innovation published to elasticsearch", [$responsePublishing]);
 
 
-        return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument,"response" => $response->asObject()], 200);
+        return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument,"response" => $responsePublishing->asObject()], 200);
 
         //return response()->json(["result" => "ok", "elasticDoco" => $elasticDocument]);
     }
