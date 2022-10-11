@@ -2,6 +2,7 @@
 
 
 use App\Http\Controllers\ExternallyExposedFunctionsController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\WorkflowNotificationsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -36,7 +37,8 @@ Route::get('/kalhmera', function () {
 /*
 //Special calls and routes
 */
-Route::get('morning/head/{timestamp}', [UserController::class, 'morningHead']);         //also for trying things
+Route::get('morning/head', [UserController::class, 'morningHead']);         //also for trying things
+
 
 //Clarisa vocabularies
 Route::get('clarisaResults', [ClarisaVocabulariesController::class, 'getClarisaResults']);
@@ -71,6 +73,7 @@ Route::get('admin/{user_id}/getReviewers', [UserController::class, 'getAllReview
 Route::get('admin/{user_id}/getSRE', [UserController::class, 'getAllScalingReadinessExperts']);
 Route::post('admin/{user_id}/users/dataPaginated', [UserController::class, 'getUsersPaginated']);
 
+
 /*
 //Innovation calls and routes
 */
@@ -101,11 +104,13 @@ Route::get('sre/{user_id}/getAssignedInnovations', [InnovationController::class,
 /*
 //RTB Search routes and calls
 */
-route::post('rtb-search', [RtbController::class, 'rtb_search']);
-route::post('rtb-retrieveByTitle', [RtbController::class, 'rtb_retrievedocument_by_title']);
-
-
-route::post('retrievedocument', [RtbController::class, 'rtb_retrieve_document']);
+route::post('rtb-search', [SearchController::class, 'searchInnovationIndex']);
+route::post('rtb-retrieveByTitle', [SearchController::class, 'searchInnovationByTitle']);
+route::post('retrievedocument', [SearchController::class, 'searchInnovationById']);
+//Search routes revisited
+route::post('innovation/published/search', [SearchController::class, 'searchInnovationIndex']);
+route::post('innovation/published/searchByTitle', [SearchController::class, 'searchInnovationByTitle']);
+route::post('innovation/published/searchById', [SearchController::class, 'searchInnovationById']);
 /*Route::group(
     ['middleware' => 'jwt'], function () {
     route::post('retrievedocument', [RtbController::class, 'rtb_retrieve_document']);
