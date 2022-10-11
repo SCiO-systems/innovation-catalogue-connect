@@ -49,7 +49,7 @@ class WorkflowNotificationsController extends Controller
         $sendToEmail = $findUser->email;
         $sendToName = $findUser->fullName;
         Log::info("User about to be notified", [$sendToEmail,$sendToName]);
-        $sendToEmail = "apostolis@scio.systems";
+        //$sendToEmail = "apostolis@scio.systems";
 
         //Transform the uuid for the 7th workflow state, it has to be used in the search page
         $counter = 0;
@@ -66,7 +66,7 @@ class WorkflowNotificationsController extends Controller
         }
         $uuidTransformed = $transformedValue;
         Log::info("This is the transformed id", [$uuidTransformed]);
-        $innovationSearchUrl = "https://innovation.dev.scio.services/#/innovation/".$uuidTransformed;
+        $innovationSearchUrl = "https://staging.innovation.scio.services/".$uuidTransformed;
 
 
         switch ($workflowState)
@@ -132,14 +132,5 @@ class WorkflowNotificationsController extends Controller
         Log::info("Email has been sent to: ", [$sendToEmail, $resp]);
         return response()->json(["result" => $resp], 200);
 
-        /*
-        if ($workflowState == 1)
-        {
-            return redirect()->route('notifyUser', [ 'innovation_id' => $innovation_id, 'workflow_state' => 2, 'user_id' => env('ADMIN_USER', ''), 'title' => $title]);
-        }
-        else
-        {
-            return response()->json(["result" => $resp], 200);
-        }*/
     }
 }
