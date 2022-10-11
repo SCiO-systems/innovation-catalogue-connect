@@ -49,7 +49,11 @@ class WorkflowNotificationsController extends Controller
         $sendToEmail = $findUser->email;
         $sendToName = $findUser->fullName;
         Log::info("User about to be notified", [$sendToEmail,$sendToName]);
-        //$sendToEmail = "apostolis@scio.systems";
+        if(strcmp($sendToEmail, "giorgos@scio.systems") == 0)
+        {
+            $sendToEmail = "apostolis@scio.systems";
+        }
+
 
         //Transform the uuid for the 7th workflow state, it has to be used in the search page
         $counter = 0;

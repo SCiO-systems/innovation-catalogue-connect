@@ -58,7 +58,7 @@ class SearchController extends Controller
             ];
             $aggregationsArray = array_merge($aggregationsArray,$singleAggregation);
         }
-        Log::info("This is the aggregationsArray", [$aggregationsArray]);
+        //Log::info("This is the aggregationsArray", [$aggregationsArray]);
 
         return $aggregationsArray;
     }
@@ -192,7 +192,7 @@ class SearchController extends Controller
 
         if($orderedSearchFlag)
         {
-            Log::info("This is the sortArray", $sortArray);
+            //Log::info("This is the sortArray", $sortArray);
             $params = [
                 'index' => 'rtb_innovations',
                 'body'  => [
