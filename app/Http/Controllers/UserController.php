@@ -90,16 +90,16 @@ class UserController extends Controller
         return response()->json(["result" => "ok", "user" => $user], 201);
     }
 
-    //Get all users from Redis (lazy loading)    {admin}
+    //Get all users    {admin}
     public function getUsersPaginated(Request $request)
     {
         $rules = array(
             'user_id' => 'required|exists:App\Models\User,userId|string|numeric',
+            'filter' => 'present|string',
             'offset' => 'required|int',
             'limit' => 'required|int|gt:offset',
             'order' => 'required|string'
         );
-
         $validator = Validator::make($request->toArray(),$rules);
         if ($validator->fails()) {
             Log::error('Request Validation Failed: ', [$validator->errors(), $request->toArray()]);
@@ -114,24 +114,39 @@ class UserController extends Controller
         }
         else{
             Log::warning('User does not have administrator privileges: ', $adminUser->permissions);
-            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges: '], 202);
+            return response()->json(["result" => "failed","errorMessage" => 'User does not have administrator privileges: '], 400);
         }
 
         if(strcmp($request->order, 'ascending'))
         {
-            $users = User::orderBy('fullName', 'asc')->offset($request->offset)->limit($request->limit)->get();
+            $order = "asc";
         }elseif (strcmp($request->order, 'descending'))
         {
-            $users = User::orderBy('fullName', 'desc')->offset($request->offset)->limit($request->limit)->get();
+            $order = "desc";
         }
         else
         {
             Log::error("Wrong parameters given", [$request->toArray()]);
-            return response()->json(["result" => "failed","errorMessage" => 'Wrong parameters given'], 202);
+            return response()->json(["result" => "failed","errorMessage" => 'Wrong parameters given'], 400);
         }
 
+        //If filter parameter is empty, retrieve all users
+        if(empty($request->filter))
+        {
+            $users = User::orderBy('fullName', $order)->offset($request->offset)->limit($request->limit)->get();
+            $userCount = User::count();
+        }
+        else{
+            $filter = ($request->filter)."%";
 
-        $userCount = User::count();
+            $users = User::where("fullName", "like", $filter)
+                ->orderBy('fullName', $order)
+                ->offset($request->offset)
+                ->limit($request->limit)
+                ->get();
+            $userCount = User::where("fullName", "like", $filter)->count();
+        }
+
         Log::info("Retrieving users from Mongo paginated");
         return response()->json(["result" => "ok", "users" => $users, "total_users" => $userCount], 200);
     }
@@ -442,11 +457,12 @@ class UserController extends Controller
    //PLAYAROUND
    */
 
-    public function morningHead($timestamp)
+    public function morningHead()
     {
-        $hardDate = date('Y-m-d H:i:s', time());
-        $date = date('Y-m-d H:i:s', (int)$timestamp);
-        return response()->json(["hardCodedDate" => $hardDate, "date" => $date], 201);
+        //$hardDate = date('Y-m-d H:i:s', time());
+        //$date = date('Y-m-d H:i:s', (int)$timestamp);
+        $user = User::where("fullName", "like", "Geo%")->get();
+        return response()->json(["result" => "ok", "data" => $user], 201);
     }
 
 
