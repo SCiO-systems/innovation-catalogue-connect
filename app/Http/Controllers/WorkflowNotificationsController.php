@@ -51,7 +51,7 @@ class WorkflowNotificationsController extends Controller
         Log::info("User about to be notified", [$sendToEmail,$sendToName]);
         if(strcmp($sendToEmail, "giorgos@scio.systems") == 0)
         {
-            $sendToEmail = "apostolis@scio.systems";
+            $sendToEmail = "panagiotis@scio.systems";
         }
 
 
