@@ -1041,10 +1041,22 @@ class InnovationController extends Controller
         $innovation->save();
         Log::info('Publishing innovation, will also add it to elastic', [$innovation]);
 
+        //Find the innovation name, used in email
+        $innovationName = "NoName";
+        foreach ($innovation->formData as $singleField)
+        {
+            if(strcmp($singleField["id"],"1.1") == 0)
+            {
+                Log::debug("THIS IS WHAT I FOUND", [$singleField["value"]]);
+                $innovationName = $singleField["value"];
+            }
+        }
+
         $elasticWhatWhat = (new ElasticPopulationController())->publishToElastic($request->innovation_id);
         Log::info($elasticWhatWhat);
 
-        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,7, $innovation->userIds[0] , "NoName");
+        Log::debug("This is the name before the call", [$innovationName]);
+        $whatWhat = (new WorkflowNotificationsController())->sendNotificationEmail($request->innovation_id,7, $innovation->userIds[0] , $innovationName);
         Log::info($whatWhat);
 
         //return redirect()->route('elasticSearchPublish', [ 'innovation_id' => $request->innovation_id]);
