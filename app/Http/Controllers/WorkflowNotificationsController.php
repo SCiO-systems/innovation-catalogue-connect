@@ -16,6 +16,7 @@ class WorkflowNotificationsController extends Controller
         $url = env('SEND_IN_BLUE_URL', '');
 
         //Log::info("THIS HAS BEEN CALLED");
+        Log::debug("This is the title", [$title]);
 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_URL, $url);
@@ -70,7 +71,7 @@ class WorkflowNotificationsController extends Controller
         }
         $uuidTransformed = $transformedValue;
         Log::info("This is the transformed id", [$uuidTransformed]);
-        $innovationSearchUrl = "https://staging.innovation.scio.services/".$uuidTransformed;
+        $innovationSearchUrl = "https://staging.innovation.scio.services/#/innovation/".$uuidTransformed;
 
 
         switch ($workflowState)
